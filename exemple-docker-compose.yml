@@ -1,0 +1,38 @@
+version: "3.8"
+
+services:
+    mysql:
+        image: mysql:8.0
+        restart: always
+        ports:
+            - "3306:3306"
+        environment:
+            MYSQL_ROOT_PASSWORD: #PASSWORD ROOT ICI
+            MYSQL_DATABASE: #Nom de la BDD ICI
+            MYSQL_USER: #Nom de l'utilisateur ici
+            MYSQL_PASSWORD: #PasswordUtilisateur ici
+        volumes:
+            - mysql-data:/var/lib/mysql
+        networks:
+            - #Nom du container ici
+
+    phpmyadmin:
+        image: phpmyadmin/phpmyadmin
+        restart: always
+        environment:
+            PMA_HOST: mysql
+            PMA_USER: #Nom de l'utilisateur ici
+            PMA_PASSWORD: #PasswordUtilisateur ici
+        ports:
+            - "8080:80"
+        depends_on:
+            - mysql
+        networks:
+            - #Nom du container ici
+networks:
+    #Nom du container ici:
+        driver: bridge
+
+volumes:
+    mysql-data:
+
