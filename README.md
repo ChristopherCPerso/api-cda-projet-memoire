@@ -44,3 +44,20 @@ Lancer symfony avec symfony server start
 ```
 
 ```
+
+##Creation des cles pour JWT
+
+Lancer la commnde pour creer le token privée
+
+```bash
+openssl genpkey \ -algorithm RSA \ -out config/jwt/private.pem \ -aes-256-cbc \ -pkeyopt rsa_keygen_bits:4096
+```
+
+Lancer la commnde pour creer le token public
+
+```bash
+openssl pkey -in config/jwt/private.pem -out config/jwt/public.pem -pubout
+```
+
+🚨 Veillez à mettre des passphrase robuste
+⚠️ Il vous faudra indiquer votre passe phrase dans le fichier .env.local

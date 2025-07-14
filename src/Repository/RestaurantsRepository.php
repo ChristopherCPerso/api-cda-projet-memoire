@@ -16,6 +16,15 @@ class RestaurantsRepository extends ServiceEntityRepository
         parent::__construct($registry, Restaurants::class);
     }
 
+    public function findAllWithPagination($page, $limit)
+    {
+        $qb = $this->createQueryBuilder('b')
+            ->setFirstResult(($page - 1) * $limit)
+            ->setMaxResults($limit);
+
+        return $qb->getQuery()->getResult();
+    }
+
     //    /**
     //     * @return Restaurants[] Returns an array of Restaurants objects
     //     */

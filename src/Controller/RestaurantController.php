@@ -11,13 +11,17 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted as AttributeIsGranted;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Symfony\Contracts\Cache\ItemInterface;
+use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
 final class RestaurantController extends AbstractController
 {
     #[Route('api/restaurants', name: 'app_add_restaurant', methods: ['POST'])]
+    #[AttributeIsGranted('ROLE_USER', message: "Vous n\'avez pas les droits nécéssaires pour faire cette action")]
     public function addRestaurant(
         Request $request,
         SerializerInterface $serializer,
@@ -86,8 +90,9 @@ final class RestaurantController extends AbstractController
             Response::HTTP_NOT_FOUND,
         );
     }
+
     #[Route('/api/restaurants', name: 'app_restaurant', methods: ['GET'])]
-    public function getAllRestaurants(RestaurantsRepository $restaurantsRepository, SerializerInterface $serializer): JsonResponse
+    public function getAllRestaurants(RestaurantsRepository $restaurantsRepository, SerializerInterface $serializer, Request $request, TagAwareCacheInterface $cache): JsonResponse
     {
         $restaurants = $restaurantsRepository->findAll();
         $jsonRestaurants = $serializer->serialize(
@@ -102,10 +107,27 @@ final class RestaurantController extends AbstractController
             [],
             true
         );
+
+        //Si l'API grandit, il y a la possibilité de créer une pagination et de mettre les élément en cache ⬇
+        // $page = $request->query->get('page');
+        // $limit = $request->query->get('limit');
+
+        // $idCache = "getAllRestaurants-" . $page . "-" . $limit;
+        // if ($page !== null && $limit !== null) {
+        //     $restaurants = $cache->get($idCache, function (ItemInterface $item) use ($restaurantsRepository, $page, $limit) {
+        //         echo ("L'élément n'est pas ecnore en cache");
+        //         $item->tag("restaurantsCache");
+        //         return $restaurantsRepository->findAllWithPagination((int) $page, (int) $limit);
+        //     });
+        // } else {
+        //     $restaurants = $restaurantsRepository->findAll();
+        // }
     }
 
 
     #[Route('api/restaurants/{id}', name: 'app_update_restaurant', methods: ['PUT'])]
+    #[AttributeIsGranted('ROLE_USER', message: "Vous n\'avez pas les droits nécéssaires pour faire cette action")]
+
     public function updateRestaurant(
         Request $request,
         SerializerInterface $serializer,
@@ -136,8 +158,11 @@ final class RestaurantController extends AbstractController
     }
 
     #[Route('/api/restaurants/{id}', name: 'app_delete_restaurant_by_id', methods: ['DELETE'])]
-    public function deleteRestaurantById(Restaurants $restaurant, EntityManagerInterface $em): JsonResponse
+    #[AttributeIsGranted('ROLE_ADMIN', message: "Vous n\'avez pas les droits nécéssaires pour faire cette action")]
+
+    public function deleteRestaurantById(Restaurants $restaurant, EntityManagerInterface $em, TagAwareCacheInterface $cache): JsonResponse
     {
+        //$cache->invalidateTags(['restaurantsCache']);
         $em->remove($restaurant);
         $em->flush();
         return new JsonResponse(
