@@ -2,7 +2,7 @@
 
 namespace App\Controller;
 
-use App\Repository\UsersRepository;
+use App\Repository\UserRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -12,10 +12,10 @@ use Symfony\Component\Serializer\SerializerInterface;
 final class UserController extends AbstractController
 {
     #[Route('/api/users', name: 'app_users')]
-    public function getAllUsers(UsersRepository $users, SerializerInterface $serializer): JsonResponse
+    public function getAllUsers(UserRepository $user, SerializerInterface $serializer): JsonResponse
     {
 
-        $user = $serializer->serialize($users->findAll(), 'json', ['groups' => 'users']);
+        $user = $serializer->serialize($user->findAll(), 'json', ['groups' => 'users']);
 
         return new JsonResponse(
             $user,
@@ -26,10 +26,10 @@ final class UserController extends AbstractController
     }
 
     #[Route('/api/users/{id}', name: 'app_user_by_id')]
-    public function getUserById($id, UsersRepository $users, SerializerInterface $serializer): JsonResponse
+    public function getUserById($id, UserRepository $user, SerializerInterface $serializer): JsonResponse
     {
 
-        $user = $users->findById($id);
+        $user = $user->findById($id);
 
         if ($user) {
             $refactUser = $serializer->serialize(

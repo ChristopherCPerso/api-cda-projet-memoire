@@ -21,9 +21,7 @@ Voici les étapes simples et efficaces pour installer l'application en local ave
 ```bash
 git clone <url-du-repo>
 cd <nom-du-projet>
-
-
-
+```
 
 Git clone
 
@@ -42,4 +40,7 @@ Ajouter des jeux de données
 symfony console doctrine:fixtures:load
 
 Lancer symfony avec symfony server start
+
+```
+
 ```

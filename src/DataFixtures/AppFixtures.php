@@ -3,7 +3,7 @@
 namespace App\DataFixtures;
 
 use App\Entity\Restaurants;
-use App\Entity\Users;
+use App\Entity\User;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Persistence\ObjectManager;
 use Faker\Factory;
@@ -16,7 +16,7 @@ class AppFixtures extends Fixture
         $faker = Factory::create('fr_FR');
 
         for ($i = 0; $i < 10; $i++) {
-            $user = new Users;
+            $user = new User;
             $user->setFirstname($faker->firstName());
             $user->setLastname($faker->lastName());
             $user->setEmail($faker->email());

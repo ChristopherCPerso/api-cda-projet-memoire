@@ -2,12 +2,13 @@
 
 namespace App\Entity;
 
-use App\Repository\UsersRepository;
+use App\Repository\UserRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 
-#[ORM\Entity(repositoryClass: UsersRepository::class)]
-class Users
+#[ORM\Entity(repositoryClass: UserRepository::class)]
+#[ORM\Table(name: 'users')]
+class User
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -39,6 +40,9 @@ class Users
 
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $updatedAt = null;
+
+    #[ORM\ManyToOne]
+    private ?Companies $company = null;
 
     public function getId(): ?int
     {
@@ -125,6 +129,18 @@ class Users
     public function setUpdatedAt(?\DateTimeImmutable $updatedAt): static
     {
         $this->updatedAt = $updatedAt;
+
+        return $this;
+    }
+
+    public function getCompany(): ?Companies
+    {
+        return $this->company;
+    }
+
+    public function setCompany(?Companies $company): static
+    {
+        $this->company = $company;
 
         return $this;
     }
