@@ -8,72 +8,105 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\Put;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Delete;
+
 
 #[ORM\Entity(repositoryClass: RestaurantsRepository::class)]
+
+#[ApiResource(
+    operations: [
+        new GetCollection(
+            normalizationContext: ['groups' => ['restaurant:list']],
+        ),
+        new Get(
+            normalizationContext: ['groups' => ['restaurant:item']]
+        ),
+        new Post(
+            denormalizationContext: ['groups' => ['restaurant:write']],
+            security: "is_granted('ROLE_USER')",
+            securityMessage: "Vous devez être connecté pour créer une nouvelle fiche restaurant"
+        ),
+        new Put(
+            denormalizationContext: ['groups' => ['restaurant:write']],
+            security: "is_granted('ROLE_ADMIN') or object.getUser() == user",
+            securityMessage: "Vous n'avez pas les droit nécéssaire pour modifier une fiche restaurant"
+        ),
+        new Delete(
+            security: "is_granted('ROLE_ADMIN')",
+            securityMessage: "Vous n'avez pas les droit nécéssaire pour effectuer cette opération."
+        )
+    ]
+
+)]
 class Restaurants
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups("getRestaurants")]
+    #[Groups(['restaurant:list', 'restaurant:item', 'restaurant:write'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 100)]
-    #[Groups("getRestaurants")]
+    #[Groups(['restaurant:list', 'restaurant:item', 'restaurant:write'])]
     #[Assert\NotBlank(message: "Le nom du restaurant est obligatoire")]
     #[Assert\Length(min: 2, max: 100, minMessage: "Le nom du restaurant est trop court (2 caractères minimum)", maxMessage: "Le nom du restaurant est trop long (100 caractères maximum)")]
     private ?string $name = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups("getRestaurants")]
+    #[Groups(['restaurant:list', 'restaurant:item', 'restaurant:write'])]
     #[Assert\NotBlank(message: "L'adresse du restaurant est obligatoire'")]
     private ?string $address = null;
 
     #[ORM\Column]
-    #[Groups("getRestaurants")]
+    #[Groups(['restaurant:list', 'restaurant:item', 'restaurant:write'])]
     private ?int $postalCode = null;
 
     #[ORM\Column(length: 100)]
-    #[Groups("getRestaurants")]
+    #[Groups(['restaurant:list', 'restaurant:item', 'restaurant:write'])]
     private ?string $city = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups("getRestaurants")]
+    #[Groups(['restaurant:write'])]
     private ?\DateTimeImmutable $createdAt = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups("getRestaurants")]
+    #[Groups(['restaurant:write'])]
     private ?\DateTimeImmutable $updatedAt = null;
 
-    #[ORM\ManyToOne]
-    #[Groups("getRestaurants")]
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[Groups(['restaurant:list', 'restaurant:item', 'restaurant:write'])]
     private ?User $user = null;
 
     /**
      * @var Collection<int, Categories>
      */
     #[ORM\ManyToMany(targetEntity: Categories::class, inversedBy: 'restaurants')]
-    #[Groups("getRestaurants")]
+    #[Groups(['restaurant:list', 'restaurant:item', 'restaurant:write', 'category:list', 'category:item'])]
     private Collection $categories;
 
     /**
      * @var Collection<int, RestaurantSchedule>
      */
-    #[ORM\ManyToMany(targetEntity: RestaurantSchedule::class, inversedBy: 'restaurants')]
+    #[ORM\ManyToMany(targetEntity: RestaurantSchedule::class, inversedBy: 'restaurants', cascade: ['persist'])]
+    #[Groups(['restaurant:list', 'restaurant:item', 'restaurant:write'])]
     private Collection $openingHours;
 
     /**
      * @var Collection<int, RestaurantImages>
      */
     #[ORM\OneToMany(targetEntity: RestaurantImages::class, mappedBy: 'restaurant')]
-    #[Groups("getRestaurants")]
+    #[Groups(['restaurant:list', 'restaurant:item', 'restaurant:write'])]
     private Collection $restaurantImages;
-
     /**
      * @var Collection<int, Review>
      */
     #[ORM\OneToMany(targetEntity: Review::class, mappedBy: 'restaurant')]
-    #[Groups("getRestaurants")]
+    #[Groups(['restaurant:list', 'restaurant:item'])]
     private Collection $reviews;
 
     public function __construct()
