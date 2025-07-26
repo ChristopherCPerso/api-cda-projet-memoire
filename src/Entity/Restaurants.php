@@ -86,7 +86,7 @@ class Restaurants
      * @var Collection<int, Categories>
      */
     #[ORM\ManyToMany(targetEntity: Categories::class, inversedBy: 'restaurants')]
-    #[Groups(['restaurant:list', 'restaurant:item', 'restaurant:write'])]
+    #[Groups(['restaurant:list', 'restaurant:item', 'restaurant:write', 'category:list', 'category:item'])]
     private Collection $categories;
 
     /**

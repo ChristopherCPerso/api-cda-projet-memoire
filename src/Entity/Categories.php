@@ -10,17 +10,19 @@ use Symfony\Component\Serializer\Annotation\Groups;
 use ApiPlatform\Metadata\ApiResource;
 
 #[ORM\Entity(repositoryClass: CategoriesRepository::class)]
-#[ApiResource()]
+#[ApiResource(
+    normalizationContext: ['groups' => ['category:list', 'category:item']],
+)]
 class Categories
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups("getRestaurants")]
+    #[Groups(['category:list', 'category:item', 'restaurant:list', 'restaurant:item'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 50, nullable: true)]
-    #[Groups("getRestaurants")]
+    #[Groups(['category:list', 'category:item', 'restaurant:list', 'restaurant:item'])]
     private ?string $name = null;
 
     /**

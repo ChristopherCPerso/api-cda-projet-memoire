@@ -6,15 +6,15 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
-use ApiPlatform\Metadata\Put;
 use App\Repository\UserRepository;
-use App\State\CompanyDataTransformer;
-use App\State\UserStateProcessor;
+use App\State\UserPasswordHasher;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: 'users')]
@@ -27,16 +27,16 @@ use Symfony\Component\Serializer\Annotation\Groups;
             normalizationContext: ['groups' => ['user:item']],
         ),
         new Post(
-            //processor: UserStateProcessor::class,
+            processor: UserPasswordHasher::class,
             denormalizationContext: ['groups' => ['user:write']],
         ),
-        new Put(
+        new Patch(
             denormalizationContext: ['groups' => ['user:write']],
-            security: "is_granted('ROLE_ADMIN') or object.getUser() === user",
+            security: "is_granted('ROLE_ADMIN') or object === user",
             securityMessage: "Vous n'avez pas les droit nécéssaire pour effectuer cette opération."
         ),
         new Delete(
-            security: "is_granted('ROLE_ADMIN') or object.getUser() === user",
+            security: "is_granted('ROLE_ADMIN') or object === user",
             securityMessage: "Vous n'avez pas les droit nécéssaire pour effectuer cette opération."
         )
     ]
@@ -62,15 +62,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $email = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['user:write'])]
     private ?string $password = null;
+
+    #[Assert\NotBlank(groups: ['user:create'])]
+    #[Groups(['user:write', 'user:update'])]
+    private ?string $plainPassword = null;
 
     #[ORM\Column]
     #[Groups(['user:list', 'user:item', 'user:write'])]
     private ?bool $isAdmin = null;
 
     #[ORM\Column(type: 'json')]
-    #[Groups(['user:list', 'user:item'])]
+    #[Groups(['user:list', 'user:item', 'user:write'])]
     private array $roles = [];
 
     #[ORM\Column(nullable: true)]
@@ -81,7 +84,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Groups(['user:write'])]
     private ?\DateTimeImmutable $updatedAt = null;
 
-    #[ORM\ManyToOne(targetEntity: Companies::class)]
+    #[ORM\ManyToOne(targetEntity: Companies::class, cascade: ["persist"])]
     #[Groups(['user:list', 'user:item', 'user:write'])]
     private ?Companies $company = null;
 
@@ -134,6 +137,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setPassword(string $password): static
     {
         $this->password = $password;
+
+        return $this;
+    }
+
+    public function getPlainPassword(): ?string
+    {
+        return $this->plainPassword;
+    }
+
+    public function setPlainPassword(?string $plainPassword): self
+    {
+        $this->plainPassword = $plainPassword;
 
         return $this;
     }

@@ -21,11 +21,11 @@ class Companies
     private ?int $id = null;
 
     #[ORM\Column(length: 100)]
-    #[Groups(['user:list', 'user:item'])]
+    #[Groups(['user:list', 'user:item', 'user:write'])]
     private ?string $name = null;
 
     #[ORM\Column(length: 100, nullable: true)]
-    #[Groups(['user:list', 'user:item'])]
+    #[Groups(['user:list', 'user:item', 'user:write'])]
     private ?string $domain = null;
 
     public function getId(): ?int
