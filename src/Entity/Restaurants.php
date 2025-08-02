@@ -14,7 +14,7 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Put;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Delete;
-
+use ApiPlatform\Metadata\ApiProperty;
 
 #[ORM\Entity(repositoryClass: RestaurantsRepository::class)]
 
@@ -27,7 +27,7 @@ use ApiPlatform\Metadata\Delete;
             normalizationContext: ['groups' => ['restaurant:item']]
         ),
         new Post(
-            denormalizationContext: ['groups' => ['restaurant:write']],
+            denormalizationContext: ['groups' => ['restaurant:write', 'restaurantImages:write', 'restaurantSchedule:write']],
             security: "is_granted('ROLE_USER')",
             securityMessage: "Vous devez être connecté pour créer une nouvelle fiche restaurant"
         ),
@@ -52,7 +52,7 @@ class Restaurants
     private ?int $id = null;
 
     #[ORM\Column(length: 100)]
-    #[Groups(['restaurant:list', 'restaurant:item', 'restaurant:write'])]
+    #[Groups(['restaurant:list', 'restaurant:item', 'restaurant:write', 'review:list', 'review:item'])]
     #[Assert\NotBlank(message: "Le nom du restaurant est obligatoire")]
     #[Assert\Length(min: 2, max: 100, minMessage: "Le nom du restaurant est trop court (2 caractères minimum)", maxMessage: "Le nom du restaurant est trop long (100 caractères maximum)")]
     private ?string $name = null;
@@ -79,6 +79,7 @@ class Restaurants
     private ?\DateTimeImmutable $updatedAt = null;
 
     #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(onDelete: "SET NULL", nullable: true)]
     #[Groups(['restaurant:list', 'restaurant:item', 'restaurant:write'])]
     private ?User $user = null;
 
@@ -93,20 +94,22 @@ class Restaurants
      * @var Collection<int, RestaurantSchedule>
      */
     #[ORM\ManyToMany(targetEntity: RestaurantSchedule::class, inversedBy: 'restaurants', cascade: ['persist'])]
-    #[Groups(['restaurant:list', 'restaurant:item', 'restaurant:write'])]
+    #[Groups(['restaurant:list', 'restaurant:item', 'restaurant:write', 'restaurantSchedule:write'])]
     private Collection $openingHours;
 
     /**
      * @var Collection<int, RestaurantImages>
      */
-    #[ORM\OneToMany(targetEntity: RestaurantImages::class, mappedBy: 'restaurant')]
-    #[Groups(['restaurant:list', 'restaurant:item', 'restaurant:write'])]
+    #[ORM\OneToMany(targetEntity: RestaurantImages::class, mappedBy: 'restaurant', cascade: ['persist', 'remove'])]
+    #[Groups(['restaurant:list', 'restaurant:item', 'restaurant:write', 'restaurantImages:write'])]
+    #[ApiProperty(fetchEager: false)]
     private Collection $restaurantImages;
     /**
      * @var Collection<int, Review>
      */
     #[ORM\OneToMany(targetEntity: Review::class, mappedBy: 'restaurant')]
-    #[Groups(['restaurant:list', 'restaurant:item'])]
+    #[Groups(['restaurant:list', 'restaurant:item', 'review:list', 'review:item'])]
+    #[ApiProperty(fetchEager: false)]
     private Collection $reviews;
 
     public function __construct()

@@ -50,15 +50,15 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?int $id = null;
 
     #[ORM\Column(length: 50)]
-    #[Groups(['user:list', 'user:item', 'user:write'])]
+    #[Groups(['user:list', 'user:item', 'user:write', 'restaurant:list', 'restaurant:item', 'review:list', 'review:item'])]
     private ?string $firstname = null;
 
     #[ORM\Column(length: 50)]
-    #[Groups(['user:list', 'user:item', 'user:write'])]
+    #[Groups(['user:list', 'user:item', 'user:write', 'restaurant:list', 'restaurant:item', 'review:list', 'review:item'])]
     private ?string $lastname = null;
 
     #[ORM\Column(unique: true, length: 75)]
-    #[Groups(['user:list', 'user:item', 'user:write'])]
+    #[Groups(['user:list', 'user:item', 'user:write', 'restaurant:list', 'restaurant:item'])]
     private ?string $email = null;
 
     #[ORM\Column(length: 255)]

@@ -20,18 +20,18 @@ use ApiPlatform\Metadata\Delete;
 #[ApiResource(
     operations: [
         new GetCollection(
-            normalizationContext: ['groups' => ['restaurant:list']],
+            normalizationContext: ['groups' => ['restaurantSchedule:list']],
         ),
         new Get(
-            normalizationContext: ['groups' => ['restaurant:item']]
+            normalizationContext: ['groups' => ['restaurantSchedule:item']]
         ),
         new Post(
-            denormalizationContext: ['groups' => ['restaurant:write']],
+            denormalizationContext: ['groups' => ['restaurantSchedule:write']],
             security: "is_granted('ROLE_USER')",
             securityMessage: "Vous devez être connecté pour créer une nouvelle fiche restaurant"
         ),
         new Put(
-            denormalizationContext: ['groups' => ['restaurant:write']],
+            denormalizationContext: ['groups' => ['restaurantSchedule:write']],
             security: "is_granted('ROLE_ADMIN') or object.getUser() == user",
             securityMessage: "Vous devez être admin pour créer un restaurant."
         ),
@@ -44,21 +44,24 @@ class RestaurantSchedule
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['restaurantSchedule:item', 'restaurantSchedule:list', 'restaurantSchedule:write', 'restaurant:list', 'restaurant:item'])]
+
     private ?int $id = null;
 
     #[ORM\Column(length: 15)]
-    #[Groups('restaurant:write')]
+    #[Groups(['restaurantSchedule:item', 'restaurantSchedule:list', 'restaurantSchedule:write', 'restaurant:list', 'restaurant:item'])]
     private ?string $daysOfWeek = null;
 
     #[ORM\Column(type: Types::TIME_MUTABLE)]
-    #[Groups('restaurant:write')]
+    #[Groups(['restaurantSchedule:item', 'restaurantSchedule:list', 'restaurantSchedule:write', 'restaurant:list', 'restaurant:item'])]
     private ?\DateTime $openTime = null;
 
     #[ORM\Column(type: Types::TIME_MUTABLE)]
-    #[Groups('restaurant:write')]
+    #[Groups(['restaurantSchedule:item', 'restaurantSchedule:list', 'restaurantSchedule:write', 'restaurant:list', 'restaurant:item'])]
     private ?\DateTime $closeTime = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['restaurantSchedule:item', 'restaurantSchedule:list', 'restaurantSchedule:write', 'restaurant:list', 'restaurant:item'])]
     private ?bool $isClosed = null;
 
     /**

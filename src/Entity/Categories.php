@@ -8,10 +8,36 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Delete;
 
 #[ORM\Entity(repositoryClass: CategoriesRepository::class)]
 #[ApiResource(
-    normalizationContext: ['groups' => ['category:list', 'category:item']],
+    operations: [
+        new GetCollection(
+            normalizationContext: ['groups' => ['category:list']],
+        ),
+        new Get(
+            normalizationContext: ['groups' => ['category:item']],
+        ),
+        new Post(
+            denormalizationContext: ['groups' => ['category:write']],
+            security: "is_granted('ROLE_ADMIN')",
+            securityMessage: "Vous n'avez pas les droit nécéssaire pour effectuer cette opération."
+        ),
+        new Patch(
+            denormalizationContext: ['groups' => ['category:write']],
+            security: "is_granted('ROLE_ADMIN')",
+            securityMessage: "Vous n'avez pas les droit nécéssaire pour effectuer cette opération."
+        ),
+        new Delete(
+            security: "is_granted('ROLE_ADMIN')",
+            securityMessage: "Vous n'avez pas les droit nécéssaire pour effectuer cette opération."
+        )
+    ]
 )]
 class Categories
 {
@@ -22,7 +48,7 @@ class Categories
     private ?int $id = null;
 
     #[ORM\Column(length: 50, nullable: true)]
-    #[Groups(['category:list', 'category:item', 'restaurant:list', 'restaurant:item'])]
+    #[Groups(['category:list', 'category:item', 'restaurant:list', 'restaurant:item', 'category:write'])]
     private ?string $name = null;
 
     /**

@@ -21,7 +21,6 @@ class UserRepository extends ServiceEntityRepository
     public function save(User $entity, bool $flush = false): void
     {
         $this->getEntityManager()->persist($entity);
-
         if ($flush) {
             $this->getEntityManager()->flush();
         }
@@ -30,15 +29,11 @@ class UserRepository extends ServiceEntityRepository
     public function remove(User $entity, bool $flush = false): void
     {
         $this->getEntityManager()->remove($entity);
-
         if ($flush) {
             $this->getEntityManager()->flush();
         }
     }
 
-    /**
-     * Used to upgrade (rehash) the user's password automatically over time.
-     */
     public function upgradePassword(PasswordAuthenticatedUserInterface $user, string $newHashedPassword): void
     {
         if (!$user instanceof User) {
@@ -46,7 +41,6 @@ class UserRepository extends ServiceEntityRepository
         }
 
         $user->setPassword($newHashedPassword);
-
         $this->save($user, true);
     }
     //    /**
