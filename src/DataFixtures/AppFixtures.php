@@ -17,9 +17,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 class AppFixtures extends Fixture implements DependentFixtureInterface
 {
-    public function __construct(private readonly UserPasswordHasherInterface $passwordHasher)
-    {
-    }
+    public function __construct(private readonly UserPasswordHasherInterface $passwordHasher) {}
 
     public function load(ObjectManager $manager): void
     {
@@ -56,7 +54,7 @@ class AppFixtures extends Fixture implements DependentFixtureInterface
         $categories = $manager->getRepository(Categories::class)->findAll();
 
         // 3) 30 Restaurants avec images, horaires et catégories
-        $days = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+        $days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 
         for ($i = 0; $i < 30; $i++) {
             $restaurant = new Restaurants();
@@ -64,6 +62,7 @@ class AppFixtures extends Fixture implements DependentFixtureInterface
             $restaurant->setAddress($faker->streetAddress());
             $restaurant->setPostalCode((int) $faker->postcode());
             $restaurant->setCity($faker->city());
+            $restaurant->setPhone($faker->serviceNumber());
             $restaurant->setDescription($faker->optional()->sentence(12));
             $restaurant->setCreatedAt(new \DateTimeImmutable());
             $restaurant->setUser($faker->randomElement($users));

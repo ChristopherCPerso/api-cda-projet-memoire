@@ -119,6 +119,10 @@ class Restaurants
     #[Groups(['restaurant:list', 'restaurant:item', 'restaurant:write'])]
     private ?string $description = null;
 
+    #[ORM\Column(nullable: true)]
+    #[Groups(['restaurant:list', 'restaurant:item', 'restaurant:write'])]
+    private ?string $phone = null;
+
     public function __construct()
     {
         $this->categories = new ArrayCollection();
@@ -332,6 +336,18 @@ class Restaurants
     public function setDescription(?string $description): static
     {
         $this->description = $description;
+
+        return $this;
+    }
+
+    public function getPhone(): ?string
+    {
+        return $this->phone;
+    }
+
+    public function setPhone(?string $phone): static
+    {
+        $this->phone = $phone;
 
         return $this;
     }
