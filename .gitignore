@@ -11,3 +11,4 @@
 /vendor/
 ###< symfony/framework-bundle ###
 /docker-compose.yml
+/config/jwt/
