@@ -35,11 +35,11 @@ class Review
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['review:list', 'review:item',  'restaurant:item'])]
+    #[Groups(['review:list', 'review:item', 'restaurant:list',  'restaurant:item'])]
     private ?int $id = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['review:list', 'review:item', 'review:write', 'restaurant:item'])]
+    #[Groups(['review:list', 'review:item', 'review:write', 'restaurant:list', 'restaurant:item'])]
     private ?int $rating = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
@@ -55,7 +55,7 @@ class Review
     private ?Restaurants $restaurant = null;
 
     #[ORM\ManyToOne]
-    #[Groups(['review:list', 'review:item', 'review:write', 'user:list', 'user:item'])]
+    #[Groups(['review:list', 'review:item', 'review:write', 'user:list', 'user:item', 'restaurant:item'])]
     private ?User $author = null;
 
     public function getId(): ?int

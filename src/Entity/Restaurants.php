@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\RestaurantsRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -21,10 +22,10 @@ use ApiPlatform\Metadata\ApiProperty;
 #[ApiResource(
     operations: [
         new GetCollection(
-            normalizationContext: ['groups' => ['restaurant:list']],
+            normalizationContext: ['groups' => ['restaurant:list', 'restaurantImages:list']],
         ),
         new Get(
-            normalizationContext: ['groups' => ['restaurant:item']]
+            normalizationContext: ['groups' => ['restaurant:item', 'restaurantImages:item']]
         ),
         new Post(
             denormalizationContext: ['groups' => ['restaurant:write', 'restaurantImages:write', 'restaurantSchedule:write']],
@@ -102,7 +103,7 @@ class Restaurants
      */
     #[ORM\OneToMany(targetEntity: RestaurantImages::class, mappedBy: 'restaurant', cascade: ['persist', 'remove'])]
     #[Groups(['restaurant:list', 'restaurant:item', 'restaurant:write', 'restaurantImages:write'])]
-    #[ApiProperty(fetchEager: false)]
+    #[ApiProperty(fetchEager: false, readableLink: true)]
     private Collection $restaurantImages;
     /**
      * @var Collection<int, Review>
@@ -111,6 +112,10 @@ class Restaurants
     #[Groups(['restaurant:list', 'restaurant:item', 'review:list', 'review:item'])]
     #[ApiProperty(fetchEager: false)]
     private Collection $reviews;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['restaurant:list', 'restaurant:item', 'restaurant:write'])]
+    private ?string $description = null;
 
     public function __construct()
     {
@@ -313,6 +318,18 @@ class Restaurants
                 $review->setRestaurant(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getDescription(): ?string
+    {
+        return $this->description;
+    }
+
+    public function setDescription(?string $description): static
+    {
+        $this->description = $description;
 
         return $this;
     }

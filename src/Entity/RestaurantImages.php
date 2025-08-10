@@ -43,7 +43,6 @@ class RestaurantImages
     #[ORM\GeneratedValue]
     #[ORM\Column]
     #[Groups(['restaurant:list', 'restaurant:item', 'restaurantImages:list', 'restaurantImages:item'])]
-
     private ?int $id = null;
 
     #[ORM\Column(length: 100, nullable: true)]
@@ -51,7 +50,7 @@ class RestaurantImages
     private ?string $link = null;
 
     #[ORM\ManyToOne(inversedBy: 'restaurantImages')]
-    #[Groups('restaurant:list', 'restaurant:item', 'restaurantImages:list', 'restaurantImages:item', 'restaurant:write')]
+    #[Groups(['restaurant:write'])]
     private ?Restaurants $restaurant = null;
 
     public function getId(): ?int
