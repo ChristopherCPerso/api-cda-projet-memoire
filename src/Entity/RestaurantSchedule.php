@@ -47,7 +47,6 @@ class RestaurantSchedule
     #[ORM\GeneratedValue]
     #[ORM\Column]
     #[Groups(['restaurantSchedule:item', 'restaurantSchedule:list', 'restaurantSchedule:write', 'restaurant:list', 'restaurant:item'])]
-
     private ?int $id = null;
 
     #[ORM\Column(length: 15)]
@@ -118,7 +117,7 @@ class RestaurantSchedule
         return $this;
     }
 
-    public function isClosed(): ?bool
+    public function getisClosed(): ?bool
     {
         return $this->isClosed;
     }

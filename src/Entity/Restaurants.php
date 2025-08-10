@@ -97,7 +97,7 @@ class Restaurants
      * @var Collection<int, RestaurantSchedule>
      */
     #[ORM\ManyToMany(targetEntity: RestaurantSchedule::class, inversedBy: 'restaurants', cascade: ['persist'])]
-    #[Groups(['restaurant:list', 'restaurant:item', 'restaurant:write', 'restaurantSchedule:write'])]
+    #[Groups(['restaurant:list', 'restaurant:item', 'restaurant:write', 'restaurantSchedule:list', 'restaurantSchedule:item', 'restaurantSchedule:write'])]
     private Collection $openingHours;
 
     /**
