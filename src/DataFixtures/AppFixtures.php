@@ -3,165 +3,136 @@
 namespace App\DataFixtures;
 
 use App\Entity\Categories;
+use App\Entity\Companies;
+use App\Entity\RestaurantImages;
+use App\Entity\RestaurantSchedule;
 use App\Entity\Restaurants;
+use App\Entity\Review;
 use App\Entity\User;
 use Doctrine\Bundle\FixturesBundle\Fixture;
+use Doctrine\Common\DataFixtures\DependentFixtureInterface;
 use Doctrine\Persistence\ObjectManager;
 use Faker\Factory;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
-class AppFixtures extends Fixture
+class AppFixtures extends Fixture implements DependentFixtureInterface
 {
-
-    private $userPasswordHasher;
-
-    public function __construct(UserPasswordHasherInterface $uph)
+    public function __construct(private readonly UserPasswordHasherInterface $passwordHasher)
     {
-        $this->userPasswordHasher = $uph;
     }
 
     public function load(ObjectManager $manager): void
     {
-
         $faker = Factory::create('fr_FR');
 
-        $admin = new User;
-        $admin->setFirstname("Christopher");
-        $admin->setLastname("Chiarandini");
-        $admin->setEmail("admin@admin.fr");
-        $admin->setRoles(["ROLE_ADMIN"]);
-        $admin->setPassword($this->userPasswordHasher->hashPassword($admin, "Deathfab85"));
-        $admin->setIsAdmin(0);
-        $admin->setCreatedAt(new \DateTimeImmutable());
-        //$admin->setupdatedAt(new \DateTimeImmutable());
-        $manager->persist($admin);
-        $listUser[] = $admin;
+        // 1) Utilisateurs (5 dont 1 admin demandé)
+        $users = [];
 
-        for ($i = 0; $i < 10; $i++) {
-            $user = new User;
+        $admin = new User();
+        $admin->setFirstname('Christopher');
+        $admin->setLastname('Chiarandini');
+        $admin->setEmail('cchiarandini@proton.me');
+        $admin->setRoles(['ROLE_ADMIN']);
+        $admin->setPassword($this->passwordHasher->hashPassword($admin, 'Deathfab85'));
+        $admin->setIsAdmin(true);
+        $admin->setCreatedAt(new \DateTimeImmutable());
+        $manager->persist($admin);
+        $users[] = $admin;
+
+        for ($i = 0; $i < 4; $i++) {
+            $user = new User();
             $user->setFirstname($faker->firstName());
             $user->setLastname($faker->lastName());
-            $user->setEmail($faker->email());
-            $user->setRoles(["ROLE_USER"]);
-            $user->setPassword($this->userPasswordHasher->hashPassword($user, "user"));
-            $user->setIsAdmin(0);
+            $user->setEmail($faker->unique()->safeEmail());
+            $user->setRoles(['ROLE_USER']);
+            $user->setPassword($this->passwordHasher->hashPassword($user, 'user'));
+            $user->setIsAdmin(false);
             $user->setCreatedAt(new \DateTimeImmutable());
-            //$user->setupdatedAt(new \DateTimeImmutable());
             $manager->persist($user);
-            $listUser[] = $user;
+            $users[] = $user;
         }
 
-        $categories = [
-            // Cuisine française
-            'Gastronomique',
-            'Bistrot',
-            'Brasserie',
-            'Crêperie',
-            'Bouillon',
-            'Auberge',
-            'Cuisine du terroir',
-            'Cuisine traditionnelle française',
+        // 2) Récupération des catégories créées par CategorieFixtures
+        $categories = $manager->getRepository(Categories::class)->findAll();
 
-            // Cuisine italienne
-            'Pizzeria',
-            'Trattoria',
-            'Osteria',
-            'Pasta & Risotto',
-            'Gastronomie italienne',
+        // 3) 30 Restaurants avec images, horaires et catégories
+        $days = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
 
-            // Cuisine asiatique
-            'Japonais',
-            'Chinois',
-            'Thaïlandais',
-            'Vietnamien',
-            'Coréen',
-            'Cambodgien',
-            'Fusion asiatique',
-
-            // Cuisine Amérique latine
-            'Mexicain / Tex-Mex',
-            'Péruvien',
-            'Brésilien',
-            'Argentin',
-            'Latino fusion',
-
-            // Méditerranéenne & orientale
-            'Espagnol / Tapas',
-            'Portugais',
-            'Grec',
-            'Turc',
-            'Libanais',
-            'Marocain',
-            'Tunisien',
-            'Algérien',
-            'Israélien',
-
-            // Street food / fast food
-            'Fast food',
-            'Burger',
-            'Tacos',
-            'Kebabs',
-            'Sandwiches',
-            'Hot-dogs',
-            'Friterie',
-            'Food truck',
-
-            // Végétarien / Healthy
-            'Végétarien',
-            'Vegan',
-            'Bio',
-            'Sans gluten',
-            'Cuisine santé',
-            'Juice bar',
-            'Raw food',
-
-            // Autres cuisines
-            'Indien / Pakistanais',
-            'Créole / Antillais / Réunionnais',
-            'Africain',
-            'Russe / Géorgien',
-            'Scandinave',
-            'Anglo-saxon',
-
-            // Types de service
-            'Buffet à volonté',
-            'À emporter',
-            'Livraison uniquement',
-            'Restaurant familial',
-            'Restaurant romantique',
-            'Dîner-spectacle',
-            'Rooftop',
-            'Pop-up / Éphémère',
-            'Café / Salon de thé',
-            'Bar à vin',
-            'Bar à cocktails',
-            'Bar à bières',
-            'Cantine / Self',
-        ];
-
-        foreach ($categories as $name) {
-            $categorie = new Categories();
-            $categorie->setName($name);
-            $manager->persist($categorie);
-            $listCategory[] = $categorie;
-        }
-
-        for ($i = 0; $i < 10; $i++) {
-            $restaurant = new Restaurants;
+        for ($i = 0; $i < 30; $i++) {
+            $restaurant = new Restaurants();
             $restaurant->setName($faker->company());
             $restaurant->setAddress($faker->streetAddress());
-            $restaurant->setPostalCode($faker->postcode());
-            $restaurant->setCity("Toulouse");
+            $restaurant->setPostalCode((int) $faker->postcode());
+            $restaurant->setCity($faker->city());
+            $restaurant->setDescription($faker->optional()->sentence(12));
             $restaurant->setCreatedAt(new \DateTimeImmutable());
-            $restaurant->setUser($listUser[array_rand($listUser)]);
-            $randomCategories = $faker->randomElements($listCategory, rand(1, 3));
-            foreach ($randomCategories as $category) {
-                $restaurant->addCategory($category);
+            $restaurant->setUser($faker->randomElement($users));
+
+            // 1 à 4 catégories
+            if (!empty($categories)) {
+                $randomCategories = $faker->randomElements($categories, $faker->numberBetween(1, 4));
+                foreach ($randomCategories as $category) {
+                    $restaurant->addCategory($category);
+                }
             }
-            //$restaurant->setupdatedAt(new \DateTimeImmutable());
+
+            // 2 à 5 images picsum
+            $numImages = $faker->numberBetween(2, 5);
+            for ($j = 0; $j < $numImages; $j++) {
+                $image = new RestaurantImages();
+                $random = random_int(1, 1000000);
+                $image->setLink('https://picsum.photos/600/600?random=' . $random);
+                $image->setRestaurant($restaurant);
+                $manager->persist($image);
+            }
+
+            // Horaires: 2 créneaux par jour sauf un jour fermé
+            $closedDay = $faker->randomElement($days);
+            foreach ($days as $day) {
+                if ($day === $closedDay) {
+                    $scheduleClosed = new RestaurantSchedule();
+                    $scheduleClosed->setDaysOfWeek($day);
+                    $scheduleClosed->setOpenTime(\DateTime::createFromFormat('H:i', '00:00'));
+                    $scheduleClosed->setCloseTime(\DateTime::createFromFormat('H:i', '00:00'));
+                    $scheduleClosed->setIsClosed(true);
+                    $restaurant->addOpeningHour($scheduleClosed);
+                } else {
+                    $scheduleLunch = new RestaurantSchedule();
+                    $scheduleLunch->setDaysOfWeek($day);
+                    $scheduleLunch->setOpenTime(\DateTime::createFromFormat('H:i', '11:30'));
+                    $scheduleLunch->setCloseTime(\DateTime::createFromFormat('H:i', '14:00'));
+                    $scheduleLunch->setIsClosed(false);
+                    $restaurant->addOpeningHour($scheduleLunch);
+
+                    $scheduleDinner = new RestaurantSchedule();
+                    $scheduleDinner->setDaysOfWeek($day);
+                    $scheduleDinner->setOpenTime(\DateTime::createFromFormat('H:i', '19:00'));
+                    $scheduleDinner->setCloseTime(\DateTime::createFromFormat('H:i', '00:00'));
+                    $scheduleDinner->setIsClosed(false);
+                    $restaurant->addOpeningHour($scheduleDinner);
+                }
+            }
+
             $manager->persist($restaurant);
+
+            // Reviews 1 à 5 par restaurant
+            $numReviews = $faker->numberBetween(1, 5);
+            for ($k = 0; $k < $numReviews; $k++) {
+                $review = new Review();
+                $review->setRating($faker->numberBetween(0, 5));
+                $review->setComment($faker->optional()->sentence(15));
+                $review->setCreatedAt(new \DateTimeImmutable());
+                $review->setRestaurant($restaurant);
+                $review->setAuthor($faker->randomElement($users));
+                $manager->persist($review);
+            }
         }
 
         $manager->flush();
+    }
+
+    public function getDependencies(): array
+    {
+        return [CategorieFixtures::class];
     }
 }

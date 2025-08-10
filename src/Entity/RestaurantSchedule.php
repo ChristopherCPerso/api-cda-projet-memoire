@@ -14,6 +14,7 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Put;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Delete;
+use App\State\RestaurantScheduleFindOrCreateProcessor;
 
 #[ORM\Entity(repositoryClass: RestaurantScheduleRepository::class)]
 
@@ -28,7 +29,8 @@ use ApiPlatform\Metadata\Delete;
         new Post(
             denormalizationContext: ['groups' => ['restaurantSchedule:write']],
             security: "is_granted('ROLE_USER')",
-            securityMessage: "Vous devez être connecté pour créer une nouvelle fiche restaurant"
+            securityMessage: "Vous devez être connecté pour créer une nouvelle fiche restaurant",
+            processor: RestaurantScheduleFindOrCreateProcessor::class
         ),
         new Put(
             denormalizationContext: ['groups' => ['restaurantSchedule:write']],
