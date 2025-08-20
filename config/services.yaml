@@ -18,6 +18,8 @@ services:
     App\State\UserPasswordHasher:
         bind:
             $processor: "@api_platform.doctrine.orm.state.persist_processor"
+            $companiesRepository: '@App\Repository\CompaniesRepository'
+            $entityManager: "@doctrine.orm.entity_manager"
     App\State\RestaurantScheduleFindOrCreateProcessor:
         decorates: "api_platform.doctrine.orm.state.persist_processor"
         bind:

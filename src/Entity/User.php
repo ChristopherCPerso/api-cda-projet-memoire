@@ -74,7 +74,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(type: 'json')]
     #[Groups(['user:list', 'user:item', 'user:write'])]
-    private array $roles = [];
+    private array $roles = ['ROLE_USER'];
 
     #[ORM\Column(nullable: true)]
     #[Groups(['user:write'])]
@@ -220,7 +220,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     }
     public function setRoles(array $roles): self
     {
-        $this->roles = $roles;
+        // S'assurer que ROLE_USER est toujours présent et sans doublon
+        $roles[] = 'ROLE_USER';
+        $this->roles = array_values(array_unique($roles));
 
         return $this;
     }
