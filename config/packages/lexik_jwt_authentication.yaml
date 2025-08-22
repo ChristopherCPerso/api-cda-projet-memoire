@@ -2,3 +2,24 @@ lexik_jwt_authentication:
     secret_key: "%env(resolve:JWT_SECRET_KEY)%"
     public_key: "%env(resolve:JWT_PUBLIC_KEY)%"
     pass_phrase: "%env(JWT_PASSPHRASE)%"
+    token_ttl: 3600
+
+    # Extraction du token : d'abord le cookie, sinon l'en-tête Authorization
+    token_extractors:
+        cookie:
+            enabled: true
+            name: cookie_atecna
+        authorization_header:
+            enabled: true
+            prefix: Bearer
+            name: Authorization
+
+    # Paramètres du cookie JWT
+    set_cookies:
+        cookie_atecna:
+            lifetime: null # expire en même temps que token_ttl
+            samesite: strict # protège contre CSRF
+            path: /
+            domain: null # à définir si tu veux restreindre à un domaine précis
+            httpOnly: true # 🔒 empêche l'accès via JS
+            secure: false
