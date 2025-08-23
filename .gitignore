@@ -12,3 +12,4 @@
 ###< symfony/framework-bundle ###
 /docker-compose.yml
 /config/jwt/
+/.DS_Store
