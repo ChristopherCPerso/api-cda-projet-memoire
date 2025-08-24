@@ -4,6 +4,7 @@ namespace App\DataFixtures;
 
 use App\Entity\Categories;
 use App\Entity\Companies;
+use App\Entity\PaymentCategory;
 use App\Entity\RestaurantImages;
 use App\Entity\RestaurantSchedule;
 use App\Entity\Restaurants;
@@ -52,6 +53,9 @@ class AppFixtures extends Fixture implements DependentFixtureInterface
 
         // 2) Récupération des catégories créées par CategorieFixtures
         $categories = $manager->getRepository(Categories::class)->findAll();
+        
+        // 3) Récupération des catégories de paiement créées par PaymentCategoryFixtures
+        $paymentCategories = $manager->getRepository(PaymentCategory::class)->findAll();
 
         // 3) 30 Restaurants avec images, horaires et catégories
         $days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
@@ -72,6 +76,14 @@ class AppFixtures extends Fixture implements DependentFixtureInterface
                 $randomCategories = $faker->randomElements($categories, $faker->numberBetween(1, 4));
                 foreach ($randomCategories as $category) {
                     $restaurant->addCategory($category);
+                }
+            }
+            
+            // 2 à 5 catégories de paiement
+            if (!empty($paymentCategories)) {
+                $randomPaymentCategories = $faker->randomElements($paymentCategories, $faker->numberBetween(2, 5));
+                foreach ($randomPaymentCategories as $paymentCategory) {
+                    $restaurant->addPaymentCategory($paymentCategory);
                 }
             }
 
@@ -132,6 +144,6 @@ class AppFixtures extends Fixture implements DependentFixtureInterface
 
     public function getDependencies(): array
     {
-        return [CategorieFixtures::class];
+        return [CategorieFixtures::class, PaymentCategoryFixtures::class];
     }
 }

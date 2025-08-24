@@ -14,7 +14,6 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Put;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Delete;
-use App\State\RestaurantScheduleFindOrCreateProcessor;
 
 #[ORM\Entity(repositoryClass: RestaurantScheduleRepository::class)]
 
@@ -29,8 +28,7 @@ use App\State\RestaurantScheduleFindOrCreateProcessor;
         new Post(
             denormalizationContext: ['groups' => ['restaurantSchedule:write']],
             security: "is_granted('ROLE_USER')",
-            securityMessage: "Vous devez être connecté pour créer une nouvelle fiche restaurant",
-            processor: RestaurantScheduleFindOrCreateProcessor::class
+            securityMessage: "Vous devez être connecté pour créer une nouvelle fiche restaurant"
         ),
         new Put(
             denormalizationContext: ['groups' => ['restaurantSchedule:write']],
@@ -117,7 +115,7 @@ class RestaurantSchedule
         return $this;
     }
 
-    public function getisClosed(): ?bool
+    public function getIsClosed(): ?bool
     {
         return $this->isClosed;
     }

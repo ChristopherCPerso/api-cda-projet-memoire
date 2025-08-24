@@ -22,10 +22,11 @@ services:
             $companiesRepository: '@App\Repository\CompaniesRepository'
             $entityManager: "@doctrine.orm.entity_manager"
 
-    App\State\RestaurantScheduleFindOrCreateProcessor:
-        decorates: "api_platform.doctrine.orm.state.persist_processor"
+    # Configuration du processeur pour les restaurants (horaires et types de paiement)
+    App\State\RestaurantEntityProcessor:
         bind:
-            "$persistProcessor": '@App\State\RestaurantScheduleFindOrCreateProcessor.inner'
+            $persistProcessor: "@api_platform.doctrine.orm.state.persist_processor"
+            $entityManager: "@doctrine.orm.entity_manager"
 
     # Configuration du listener JWT personnalisé
     App\EventListener\JWTCreatedListener:
