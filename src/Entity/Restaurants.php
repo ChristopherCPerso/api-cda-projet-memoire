@@ -16,7 +16,7 @@ use ApiPlatform\Metadata\Put;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\ApiProperty;
-use App\State\RestaurantScheduleFindOrCreateProcessor;
+use App\State\RestaurantEntityProcessor;
 
 #[ORM\Entity(repositoryClass: RestaurantsRepository::class)]
 
@@ -29,10 +29,10 @@ use App\State\RestaurantScheduleFindOrCreateProcessor;
             normalizationContext: ['groups' => ['restaurant:item', 'restaurantImages:item']]
         ),
         new Post(
-            denormalizationContext: ['groups' => ['restaurant:write', 'restaurantImages:write', 'restaurantSchedule:write']],
+            denormalizationContext: ['groups' => ['restaurant:write', 'restaurantImages:write', 'restaurantSchedule:write', 'category:write', 'payment:write']],
             security: "is_granted('ROLE_USER')",
             securityMessage: "Vous devez être connecté pour créer une nouvelle fiche restaurant",
-            processor: RestaurantScheduleFindOrCreateProcessor::class
+            processor: RestaurantEntityProcessor::class
         ),
         new Put(
             denormalizationContext: ['groups' => ['restaurant:write']],
@@ -89,8 +89,8 @@ class Restaurants
     /**
      * @var Collection<int, Categories>
      */
-    #[ORM\ManyToMany(targetEntity: Categories::class, inversedBy: 'restaurants')]
-    #[Groups(['restaurant:list', 'restaurant:item', 'restaurant:write', 'category:list', 'category:item'])]
+    #[ORM\ManyToMany(targetEntity: Categories::class, inversedBy: 'restaurants', cascade: ['persist'])]
+    #[Groups(['restaurant:list', 'restaurant:item', 'restaurant:write', 'category:list', 'category:item', 'category:write'])]
     private Collection $categories;
 
     /**
@@ -123,12 +123,20 @@ class Restaurants
     #[Groups(['restaurant:list', 'restaurant:item', 'restaurant:write'])]
     private ?string $phone = null;
 
+    /**
+     * @var Collection<int, PaymentCategory>
+     */
+    #[ORM\ManyToMany(targetEntity: PaymentCategory::class, mappedBy: 'restaurants', cascade: ['persist'])]
+    #[Groups(['restaurant:list', 'restaurant:item', 'restaurant:write', 'payment:list', 'payment:item'])]
+    private Collection $paymentCategories;
+
     public function __construct()
     {
         $this->categories = new ArrayCollection();
         $this->openingHours = new ArrayCollection();
         $this->restaurantImages = new ArrayCollection();
         $this->reviews = new ArrayCollection();
+        $this->paymentCategories = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -348,6 +356,33 @@ class Restaurants
     public function setPhone(?string $phone): static
     {
         $this->phone = $phone;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, PaymentCategory>
+     */
+    public function getPaymentCategories(): Collection
+    {
+        return $this->paymentCategories;
+    }
+
+    public function addPaymentCategory(PaymentCategory $paymentCategory): static
+    {
+        if (!$this->paymentCategories->contains($paymentCategory)) {
+            $this->paymentCategories->add($paymentCategory);
+            $paymentCategory->addRestaurant($this);
+        }
+
+        return $this;
+    }
+
+    public function removePaymentCategory(PaymentCategory $paymentCategory): static
+    {
+        if ($this->paymentCategories->removeElement($paymentCategory)) {
+            $paymentCategory->removeRestaurant($this);
+        }
 
         return $this;
     }
