@@ -69,6 +69,10 @@ class RestaurantSchedule
     #[ORM\ManyToMany(targetEntity: Restaurants::class, mappedBy: 'openingHours')]
     private Collection $restaurants;
 
+    #[ORM\Column(length: 50)]
+    #[Groups(['restaurantSchedule:item', 'restaurantSchedule:list', 'restaurantSchedule:write', 'restaurant:list', 'restaurant:item'])]
+    private ?string $serviceName = null;
+
     public function __construct()
     {
         $this->restaurants = new ArrayCollection();
@@ -150,6 +154,18 @@ class RestaurantSchedule
         if ($this->restaurants->removeElement($restaurant)) {
             $restaurant->removeOpeningHour($this);
         }
+
+        return $this;
+    }
+
+    public function getServiceName(): ?string
+    {
+        return $this->serviceName;
+    }
+
+    public function setServiceName(string $serviceName): static
+    {
+        $this->serviceName = $serviceName;
 
         return $this;
     }
