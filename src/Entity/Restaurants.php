@@ -43,8 +43,9 @@ use App\State\RestaurantEntityProcessor;
             security: "is_granted('ROLE_ADMIN')",
             securityMessage: "Vous n'avez pas les droit nécéssaire pour effectuer cette opération."
         )
-    ]
-
+        ],
+        paginationEnabled: true,
+        paginationItemsPerPage:100  
 )]
 class Restaurants
 {
