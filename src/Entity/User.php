@@ -28,6 +28,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         ),
         new Post(
             processor: UserPasswordHasher::class,
+            normalizationContext: ['groups' => ['user:item']],
             denormalizationContext: ['groups' => ['user:write']],
         ),
         new Patch(
