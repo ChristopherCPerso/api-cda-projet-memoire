@@ -69,7 +69,6 @@ jobs:
                   source: "release.tar.gz"
                   target: "~/"
 
-            # DÉPLOIEMENT SIMPLIFIÉ POUR INFOMANIAK
             - name: Deploy to Infomaniak
               uses: appleboy/ssh-action@v1.2.0
               with:
@@ -82,11 +81,8 @@ jobs:
                       set -euo pipefail
 
                       echo "🚀 Début du déploiement Infomaniak..."
-
-                      # Répertoire web Infomaniak
                       WEB_DIR="sites/apimemoire"
 
-                      # Créer une sauvegarde de l'existant
                       if [ -d "$WEB_DIR" ] && [ "$(ls -A $WEB_DIR 2>/dev/null)" ]; then
                           echo "💾 Sauvegarde de l'existant..."
                           BACKUP_NAME="backup_$(date +%Y%m%d_%H%M%S).tar.gz"
@@ -94,21 +90,12 @@ jobs:
                           echo "✅ Sauvegarde: $BACKUP_NAME"
                       fi
 
-                      # S'assurer que le répertoire web existe
                       mkdir -p "$WEB_DIR"
 
-                      # Sauvegarder les fichiers de config existants
-                      if [ -f "$WEB_DIR/.env.local" ]; then
-                          cp "$WEB_DIR/.env.local" "/tmp/env_backup" || true
-                      fi
-                      if [ -d "$WEB_DIR/var" ]; then
-                          cp -r "$WEB_DIR/var" "/tmp/var_backup" || true
-                      fi
-                      if [ -d "$WEB_DIR/public/uploads" ]; then
-                          cp -r "$WEB_DIR/public/uploads" "/tmp/uploads_backup" || true
-                      fi
+                      if [ -f "$WEB_DIR/.env.local" ]; then cp "$WEB_DIR/.env.local" "/tmp/env_backup" || true; fi
+                      if [ -d "$WEB_DIR/var" ]; then cp -r "$WEB_DIR/var" "/tmp/var_backup" || true; fi
+                      if [ -d "$WEB_DIR/public/uploads" ]; then cp -r "$WEB_DIR/public/uploads" "/tmp/uploads_backup" || true; fi
 
-                      # Nettoyer le répertoire web (sauf les données persistantes)
                       echo "🧹 Nettoyage du répertoire web..."
                       cd "$WEB_DIR"
                       find . -mindepth 1 -maxdepth 1 ! -name 'var' ! -name '.env.local' ! -name 'public' -exec rm -rf {} + 2>/dev/null || true
@@ -116,57 +103,36 @@ jobs:
                           find public -mindepth 1 -maxdepth 1 ! -name 'uploads' -exec rm -rf {} + 2>/dev/null || true
                       fi
 
-                      # Extraire la nouvelle version
                       echo "📦 Extraction de la nouvelle version..."
-                      tar -xzf "$HOME/release.tar.gz" -C "$WEB_DIR"
-                      cd "$WEB_DIR"
+                      # On extrait dans le répertoire courant, car on a déjà fait "cd"
+                      tar -xzf "$HOME/release.tar.gz"
 
-                      # Restaurer les fichiers de config et données
-                      if [ -f "/tmp/env_backup" ]; then
-                          cp "/tmp/env_backup" ".env.local"
-                          echo "✅ .env.local restauré"
-                      fi
+                      if [ -f "/tmp/env_backup" ]; then cp "/tmp/env_backup" ".env.local"; echo "✅ .env.local restauré"; fi
 
-                      # Créer les répertoires var s'ils n'existent pas
                       mkdir -p var/cache var/log var/sessions
-                      if [ -d "/tmp/var_backup" ]; then
-                          cp -r /tmp/var_backup/* var/ 2>/dev/null || true
-                      fi
+                      if [ -d "/tmp/var_backup" ]; then cp -r /tmp/var_backup/* var/ 2>/dev/null || true; fi
 
-                      # Restaurer uploads
                       mkdir -p public/uploads
-                      if [ -d "/tmp/uploads_backup" ]; then
-                          cp -r /tmp/uploads_backup/* public/uploads/ 2>/dev/null || true
-                      fi
+                      if [ -d "/tmp/uploads_backup" ]; then cp -r /tmp/uploads_backup/* public/uploads/ 2>/dev/null || true; fi
 
-                      # Installation des dépendances
                       echo "📦 Installation des dépendances..."
                       composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
 
-                      # Configuration Symfony
                       if [ -f bin/console ]; then
                           echo "⚙️ Configuration Symfony..."
-                          
-                          # Migrations
                           php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration || echo "⚠️ Migrations non appliquées"
-                          
-                          # Cache
                           php bin/console cache:clear --env=prod --no-warmup || true
                           php bin/console cache:warmup --env=prod || true
-                          
-                          # API Platform doc
                           php bin/console api:openapi:export --yaml > public/api-docs.yaml 2>/dev/null || echo "📚 Documentation API non générée"
                       fi
 
-                      # Permissions
                       echo "🔐 Configuration des permissions..."
                       chmod -R 755 .
                       chmod -R 777 var 2>/dev/null || chmod -R 755 var
                       chmod -R 755 public/uploads 2>/dev/null || true
 
-                      # Nettoyage
                       rm -f "$HOME/release.tar.gz"
                       rm -rf /tmp/env_backup /tmp/var_backup /tmp/uploads_backup 2>/dev/null || true
 
                       echo "✅ Déploiement Infomaniak terminé avec succès!"
-                      echo "🌐 Site disponible dans: $WEB_DIR"
+                      echo "🌐 Site disponible dans: $WEB_DIR"```
