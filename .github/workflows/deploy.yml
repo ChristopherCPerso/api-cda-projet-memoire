@@ -1,0 +1,102 @@
+name: CI & Deploy to Infomaniak
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-test-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # --- CI PHP/Symfony (ignore si API Node)
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, intl, pdo_mysql, opcache
+          coverage: none
+
+      - name: Install deps (dev) & run tests
+        run: |
+          composer install --no-interaction --prefer-dist
+          if [ -f vendor/bin/phpunit ]; then vendor/bin/phpunit --testdox; else echo "No tests"; fi
+
+      - name: Prepare production vendor
+        run: composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+
+      # --- (Optionnel) Build front/assets ici si besoin
+      # - name: Build assets
+      #   run: npm ci && npm run build
+
+      - name: Create release archive
+        run: |
+          tar -czf release.tar.gz \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='tests' \
+            --exclude='var/cache/*' \
+            --exclude='var/log/*' \
+            .
+
+      - name: Add host key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "${{ secrets.SSH_PORT }}" "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Upload archive to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "release.tar.gz"
+          target: "~/deploy"
+
+      - name: Deploy on server (extract, link, composer, migrate)
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            set -euo pipefail
+            DEPLOY_PATH=${{ secrets.DEPLOY_PATH }}
+            RELEASES="$DEPLOY_PATH/releases"
+            SHARED="$DEPLOY_PATH/shared"
+            TS=$(date +%Y%m%d%H%M%S)
+            mkdir -p "$RELEASES/$TS"
+            tar -xzf "$HOME/deploy/release.tar.gz" -C "$RELEASES/$TS"
+
+            cd "$RELEASES/$TS"
+
+            # Symlinks vers le shared (persistant)
+            ln -sfn "$SHARED/.env.local" .env.local || true
+            mkdir -p "$SHARED/var" "$SHARED/public/uploads"
+            rm -rf var public/uploads
+            ln -sfn "$SHARED/var" var
+            ln -sfn "$SHARED/public/uploads" public/uploads
+
+            # Dépendances & optimisations côté serveur
+            composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+
+            # Migrations DB (si Doctrine)
+            if [ -f bin/console ]; then
+              php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
+              php bin/console cache:clear --env=prod
+              php bin/console cache:warmup --env=prod
+            fi
+
+            # Bascule atomique
+            ln -sfn "$RELEASES/$TS" "$DEPLOY_PATH/current"
+
+            # (Si la cible du site pointe ailleurs, mets à jour le lien web)
+            # ln -sfn "$DEPLOY_PATH/current/public" "$HOME/web/api"
+
+            # Droits (répertoires d'écriture)
+            chmod -R u+rwX,g+rwX var || true
