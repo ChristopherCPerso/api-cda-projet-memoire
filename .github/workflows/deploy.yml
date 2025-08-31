@@ -71,6 +71,7 @@ jobs:
                   username: ${{ secrets.SSH_USER }}
                   key: ${{ secrets.SSH_KEY }}
                   port: ${{ secrets.SSH_PORT }}
+                  passphrase: ${{ secrets.SSH_PASSPHRASE }}
                   source: "release.tar.gz"
                   target: "~/deploy"
 
@@ -81,6 +82,7 @@ jobs:
                   username: ${{ secrets.SSH_USER }}
                   key: ${{ secrets.SSH_KEY }}
                   port: ${{ secrets.SSH_PORT }}
+                  passphrase: ${{ secrets.SSH_PASSPHRASE }}
                   script: |
                       set -euo pipefail
                       DEPLOY_PATH=${{ secrets.DEPLOY_PATH }}
