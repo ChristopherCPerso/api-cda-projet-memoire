@@ -1,102 +1,151 @@
 name: CI & Deploy to Infomaniak
-
 on:
-  push:
-    branches: [ "main" ]
-
+    push:
+        branches: ["main"]
 jobs:
-  build-test-deploy:
-    runs-on: ubuntu-latest
+    build-test-deploy:
+        runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+        # Ajout des services MySQL pour les tests
+        services:
+            mysql:
+                image: mysql:8.0
+                env:
+                    MYSQL_ROOT_PASSWORD: root
+                    MYSQL_DATABASE: symfony_test
+                ports:
+                    - 3306:3306
+                options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
-      # --- CI PHP/Symfony (ignore si API Node)
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.2'
-          extensions: mbstring, intl, pdo_mysql, opcache
-          coverage: none
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
 
-      - name: Install deps (dev) & run tests
-        run: |
-          composer install --no-interaction --prefer-dist
-          if [ -f vendor/bin/phpunit ]; then vendor/bin/phpunit --testdox; else echo "No tests"; fi
+            # Configuration d'environnement pour éviter la connexion DB
+            - name: Setup environment
+              run: |
+                  # Créer un .env.test temporaire pour éviter la connexion DB
+                  echo "APP_ENV=test" > .env.test.local
+                  echo "DATABASE_URL=sqlite:///:memory:" >> .env.test.local
+                  echo "APP_SECRET=test" >> .env.test.local
 
-      - name: Prepare production vendor
-        run: composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+            - name: Setup PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: "8.2"
+                  extensions: mbstring, intl, pdo_mysql, pdo_sqlite, opcache
+                  coverage: none
 
-      # --- (Optionnel) Build front/assets ici si besoin
-      # - name: Build assets
-      #   run: npm ci && npm run build
+            # Installation avec variable d'environnement pour éviter les scripts Symfony
+            - name: Install deps (dev) WITHOUT auto-scripts
+              run: |
+                  composer install --no-interaction --prefer-dist --no-scripts
 
-      - name: Create release archive
-        run: |
-          tar -czf release.tar.gz \
-            --exclude='.git' \
-            --exclude='.github' \
-            --exclude='tests' \
-            --exclude='var/cache/*' \
-            --exclude='var/log/*' \
-            .
+            # Puis on lance les scripts manuellement avec la bonne config
+            - name: Setup database for tests
+              run: |
+                  echo "DATABASE_URL=mysql://root:root@127.0.0.1:3306/symfony_test" > .env.test.local
+                  php bin/console doctrine:database:create --env=test --if-not-exists
+                  php bin/console doctrine:schema:create --env=test
+                  # Fixtures si tu en as
+                  php bin/console doctrine:fixtures:load --env=test --no-interaction --quiet || echo "No fixtures"
 
-      - name: Add host key
-        run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -p "${{ secrets.SSH_PORT }}" "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+            - name: Run tests
+              run: |
+                  if [ -f vendor/bin/phpunit ]; then 
+                    vendor/bin/phpunit --testdox
+                  else 
+                    echo "No tests configured"
+                  fi
 
-      - name: Upload archive to server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          port: ${{ secrets.SSH_PORT }}
-          source: "release.tar.gz"
-          target: "~/deploy"
+            # Maintenant on prépare pour la production (sans DB)
+            - name: Prepare production vendor (no DB connection)
+              run: |
+                  # Supprimer la config de test
+                  rm -f .env.test.local
+                  # Installer en prod sans scripts automatiques
+                  composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader --no-scripts
 
-      - name: Deploy on server (extract, link, composer, migrate)
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          port: ${{ secrets.SSH_PORT }}
-          script: |
-            set -euo pipefail
-            DEPLOY_PATH=${{ secrets.DEPLOY_PATH }}
-            RELEASES="$DEPLOY_PATH/releases"
-            SHARED="$DEPLOY_PATH/shared"
-            TS=$(date +%Y%m%d%H%M%S)
-            mkdir -p "$RELEASES/$TS"
-            tar -xzf "$HOME/deploy/release.tar.gz" -C "$RELEASES/$TS"
+            - name: Create release archive
+              run: |
+                  tar -czf release.tar.gz \
+                    --exclude='.git' \
+                    --exclude='.github' \
+                    --exclude='tests' \
+                    --exclude='var/cache/*' \
+                    --exclude='var/log/*' \
+                    --exclude='.env.test*' \
+                    .
 
-            cd "$RELEASES/$TS"
+            - name: Add host key
+              run: |
+                  mkdir -p ~/.ssh
+                  ssh-keyscan -p "${{ secrets.SSH_PORT }}" "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
 
-            # Symlinks vers le shared (persistant)
-            ln -sfn "$SHARED/.env.local" .env.local || true
-            mkdir -p "$SHARED/var" "$SHARED/public/uploads"
-            rm -rf var public/uploads
-            ln -sfn "$SHARED/var" var
-            ln -sfn "$SHARED/public/uploads" public/uploads
+            - name: Upload archive to server
+              uses: appleboy/scp-action@v0.1.7
+              with:
+                  host: ${{ secrets.SSH_HOST }}
+                  username: ${{ secrets.SSH_USER }}
+                  key: ${{ secrets.SSH_KEY }}
+                  port: ${{ secrets.SSH_PORT }}
+                  source: "release.tar.gz"
+                  target: "~/deploy"
 
-            # Dépendances & optimisations côté serveur
-            composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+            - name: Deploy on server (extract, link, composer, migrate)
+              uses: appleboy/ssh-action@v1.2.0
+              with:
+                  host: ${{ secrets.SSH_HOST }}
+                  username: ${{ secrets.SSH_USER }}
+                  key: ${{ secrets.SSH_KEY }}
+                  port: ${{ secrets.SSH_PORT }}
+                  script: |
+                      set -euo pipefail
+                      DEPLOY_PATH=${{ secrets.DEPLOY_PATH }}
+                      RELEASES="$DEPLOY_PATH/releases"
+                      SHARED="$DEPLOY_PATH/shared"
+                      TS=$(date +%Y%m%d%H%M%S)
 
-            # Migrations DB (si Doctrine)
-            if [ -f bin/console ]; then
-              php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
-              php bin/console cache:clear --env=prod
-              php bin/console cache:warmup --env=prod
-            fi
+                      echo "🚀 Début du déploiement..."
+                      mkdir -p "$RELEASES/$TS"
+                      tar -xzf "$HOME/deploy/release.tar.gz" -C "$RELEASES/$TS"
+                      cd "$RELEASES/$TS"
 
-            # Bascule atomique
-            ln -sfn "$RELEASES/$TS" "$DEPLOY_PATH/current"
+                      # Symlinks vers le shared (persistant)
+                      ln -sfn "$SHARED/.env.local" .env.local || true
+                      mkdir -p "$SHARED/var" "$SHARED/public/uploads"
+                      rm -rf var public/uploads
+                      ln -sfn "$SHARED/var" var
+                      ln -sfn "$SHARED/public/uploads" public/uploads
 
-            # (Si la cible du site pointe ailleurs, mets à jour le lien web)
-            # ln -sfn "$DEPLOY_PATH/current/public" "$HOME/web/api"
+                      # Dépendances côté serveur (avec la vraie DB)
+                      echo "📦 Installation dépendances production..."
+                      composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
 
-            # Droits (répertoires d'écriture)
-            chmod -R u+rwX,g+rwX var || true
+                      # Migrations DB (maintenant qu'on a la vraie config)
+                      if [ -f bin/console ]; then
+                        echo "🗄️ Migration base de données..."
+                        php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
+                        
+                        echo "⚡ Optimisation cache..."
+                        php bin/console cache:clear --env=prod --no-warmup
+                        php bin/console cache:warmup --env=prod
+                        
+                        # API Platform - génération doc
+                        echo "📚 Génération documentation API..."
+                        php bin/console api:openapi:export --yaml > public/api-docs.yaml || echo "Pas de doc générée"
+                      fi
+
+                      # Bascule atomique
+                      echo "🔄 Bascule vers nouvelle version..."
+                      ln -sfn "$RELEASES/$TS" "$DEPLOY_PATH/current"
+
+                      # Droits d'écriture
+                      chmod -R u+rwX,g+rwX var || true
+
+                      echo "✅ Déploiement terminé avec succès!"
+
+                      # Health check optionnel
+                      sleep 2
+                      echo "🏥 Test de santé de l'API..."
+                      # curl -f https://ton-domaine.com/api || echo "⚠️ Health check à vérifier manuellement"
