@@ -80,50 +80,54 @@ jobs:
                   script: |
                       set -euo pipefail
 
+                      # --- CORRECTION : Définir les chemins explicites ---
+                      PHP_CMD="/opt/php8.2/bin/php"
+                      COMPOSER_CMD="/opt/php8.2/bin/composer"
+
                       echo "🚀 Début du déploiement Infomaniak..."
                       WEB_DIR="sites/apimemoire"
 
+                      # ... (le début du script ne change pas) ...
                       if [ -d "$WEB_DIR" ] && [ "$(ls -A $WEB_DIR 2>/dev/null)" ]; then
                           echo "💾 Sauvegarde de l'existant..."
                           BACKUP_NAME="backup_$(date +%Y%m%d_%H%M%S).tar.gz"
                           tar -czf "$BACKUP_NAME" -C "$WEB_DIR" . --exclude="var/cache/*" --exclude="var/log/*" || true
                           echo "✅ Sauvegarde: $BACKUP_NAME"
                       fi
-
                       mkdir -p "$WEB_DIR"
-
                       if [ -f "$WEB_DIR/.env.local" ]; then cp "$WEB_DIR/.env.local" "/tmp/env_backup" || true; fi
                       if [ -d "$WEB_DIR/var" ]; then cp -r "$WEB_DIR/var" "/tmp/var_backup" || true; fi
                       if [ -d "$WEB_DIR/public/uploads" ]; then cp -r "$WEB_DIR/public/uploads" "/tmp/uploads_backup" || true; fi
-
                       echo "🧹 Nettoyage du répertoire web..."
                       cd "$WEB_DIR"
                       find . -mindepth 1 -maxdepth 1 ! -name 'var' ! -name '.env.local' ! -name 'public' -exec rm -rf {} + 2>/dev/null || true
                       if [ -d "public" ]; then
                           find public -mindepth 1 -maxdepth 1 ! -name 'uploads' -exec rm -rf {} + 2>/dev/null || true
                       fi
-
                       echo "📦 Extraction de la nouvelle version..."
-                      # On extrait dans le répertoire courant, car on a déjà fait "cd"
                       tar -xzf "$HOME/release.tar.gz"
-
                       if [ -f "/tmp/env_backup" ]; then cp "/tmp/env_backup" ".env.local"; echo "✅ .env.local restauré"; fi
-
                       mkdir -p var/cache var/log var/sessions
                       if [ -d "/tmp/var_backup" ]; then cp -r /tmp/var_backup/* var/ 2>/dev/null || true; fi
-
                       mkdir -p public/uploads
                       if [ -d "/tmp/uploads_backup" ]; then cp -r /tmp/uploads_backup/* public/uploads/ 2>/dev/null || true; fi
 
-                      echo "📦 Installation des dépendances..."
-                      composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+                      # --- CORRECTION : Utiliser les chemins explicites ---
+                      echo "📦 Installation des dépendances avec PHP 8.2..."
+                      $COMPOSER_CMD install --no-dev --prefer-dist --no-interaction --optimize-autoloader
 
                       if [ -f bin/console ]; then
-                          echo "⚙️ Configuration Symfony..."
-                          php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration || echo "⚠️ Migrations non appliquées"
-                          php bin/console cache:clear --env=prod --no-warmup || true
-                          php bin/console cache:warmup --env=prod || true
-                          php bin/console api:openapi:export --yaml > public/api-docs.yaml 2>/dev/null || echo "📚 Documentation API non générée"
+                          echo "⚙️ Configuration Symfony avec PHP 8.2..."
+                          
+                          # Migrations
+                          $PHP_CMD bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration || echo "⚠️ Migrations non appliquées"
+                          
+                          # Cache
+                          $PHP_CMD bin/console cache:clear --env=prod --no-warmup || true
+                          $PHP_CMD bin/console cache:warmup --env=prod || true
+                          
+                          # API Platform doc
+                          $PHP_CMD bin/console api:openapi:export --yaml > public/api-docs.yaml 2>/dev/null || echo "📚 Documentation API non générée"
                       fi
 
                       echo "🔐 Configuration des permissions..."
@@ -135,4 +139,4 @@ jobs:
                       rm -rf /tmp/env_backup /tmp/var_backup /tmp/uploads_backup 2>/dev/null || true
 
                       echo "✅ Déploiement Infomaniak terminé avec succès!"
-                      echo "🌐 Site disponible dans: $WEB_DIR"```
+                      echo "🌐 Site disponible dans: $WEB_DIR"
