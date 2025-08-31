@@ -35,29 +35,31 @@ jobs:
                   composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader --no-scripts
                   echo "✅ Build production prêt"
 
-            # --- MODIFICATION 1 ---
+            # --- CORRECTION FINALE ---
             - name: Create release archive
               run: |
                   echo "📦 Création de l'archive de déploiement..."
-                  # Crée l'archive dans un chemin absolu (/tmp) pour éviter les problèmes de chemins relatifs
-                  tar -czf /tmp/release.tar.gz \
-                    --exclude='.git' \
-                    --exclude='.github' \
-                    --exclude='tests' \
-                    --exclude='var/cache/*' \
-                    --exclude='var/log/*' \
-                    --exclude='.env.test*' \
-                    --exclude='phpunit.xml*' \
-                    --exclude='node_modules' \
+                  # L'archive est créée dans le workspace, et est exclue d'elle-même.
+                  # Utiliser des chemins relatifs avec './' peut parfois aider à être plus explicite.
+                  tar -czf release.tar.gz \
+                    --exclude='./.git' \
+                    --exclude='./.github' \
+                    --exclude='./tests' \
+                    --exclude='./var/cache/*' \
+                    --exclude='./var/log/*' \
+                    --exclude='./.env.test*' \
+                    --exclude='./phpunit.xml*' \
+                    --exclude='./node_modules' \
+                    --exclude='./release.tar.gz' \
                     .
-                  echo "✅ Archive créée: /tmp/release.tar.gz"
+                  echo "✅ Archive créée: release.tar.gz"
 
             - name: Add host key
               run: |
                   mkdir -p ~/.ssh
                   ssh-keyscan -p "${{ secrets.SSH_PORT }}" "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
 
-            # --- MODIFICATION 2 ---
+            # Le chemin "source" est correct car il est relatif au workspace
             - name: Upload archive to server
               uses: appleboy/scp-action@v0.1.7
               with:
@@ -65,8 +67,7 @@ jobs:
                   username: ${{ secrets.SSH_USER }}
                   key: ${{ secrets.SSH_KEY }}
                   port: ${{ secrets.SSH_PORT }}
-                  # Le chemin source est mis à jour pour pointer vers le chemin absolu de l'archive
-                  source: "/tmp/release.tar.gz"
+                  source: "release.tar.gz"
                   target: "~/deploy"
 
             - name: Deploy on server (extract, link, composer, migrate)
