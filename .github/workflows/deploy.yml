@@ -84,7 +84,7 @@ jobs:
                       echo "🚀 Début du déploiement Infomaniak..."
 
                       # Répertoire web Infomaniak
-                      WEB_DIR="/sites/apimemoire"
+                      WEB_DIR="sites/apimemoire"
 
                       # Créer une sauvegarde de l'existant
                       if [ -d "$WEB_DIR" ] && [ "$(ls -A $WEB_DIR 2>/dev/null)" ]; then
