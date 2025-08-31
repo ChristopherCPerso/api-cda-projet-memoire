@@ -35,13 +35,15 @@ jobs:
                   composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader --no-scripts
                   echo "✅ Build production prêt"
 
-            # --- CORRECTION FINALE ---
+            # --- LA CORRECTION DÉFINITIVE ---
             - name: Create release archive
               run: |
                   echo "📦 Création de l'archive de déploiement..."
-                  # L'archive est créée dans le workspace, et est exclue d'elle-même.
-                  # Utiliser des chemins relatifs avec './' peut parfois aider à être plus explicite.
-                  tar -czf release.tar.gz \
+                  # 1. Créer un répertoire temporaire pour la sortie
+                  mkdir build
+
+                  # 2. Créer l'archive DANS ce répertoire, tout en EXCLUANT ce même répertoire
+                  tar -czf build/release.tar.gz \
                     --exclude='./.git' \
                     --exclude='./.github' \
                     --exclude='./tests' \
@@ -50,8 +52,11 @@ jobs:
                     --exclude='./.env.test*' \
                     --exclude='./phpunit.xml*' \
                     --exclude='./node_modules' \
-                    --exclude='./release.tar.gz' \
+                    --exclude='./build' \
                     .
+
+                  # 3. Déplacer l'archive finalisée à la racine du projet
+                  mv build/release.tar.gz .
                   echo "✅ Archive créée: release.tar.gz"
 
             - name: Add host key
@@ -59,7 +64,6 @@ jobs:
                   mkdir -p ~/.ssh
                   ssh-keyscan -p "${{ secrets.SSH_PORT }}" "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
 
-            # Le chemin "source" est correct car il est relatif au workspace
             - name: Upload archive to server
               uses: appleboy/scp-action@v0.1.7
               with:
