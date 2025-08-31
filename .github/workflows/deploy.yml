@@ -10,7 +10,7 @@ jobs:
             - name: Checkout
               uses: actions/checkout@v4
 
-            - name: Setup environment
+            - name: Setup environment for build
               run: |
                   echo "APP_ENV=test" > .env.test.local
                   echo "DATABASE_URL=sqlite:///:memory:" >> .env.test.local
@@ -24,16 +24,10 @@ jobs:
                   coverage: none
 
             - name: Install dependencies
-              run: |
-                  echo "📦 Installation des dépendances..."
-                  composer install --no-interaction --prefer-dist --no-scripts
-                  echo "✅ Dépendances installées"
+              run: composer install --no-interaction --prefer-dist --no-scripts
 
             - name: Prepare production build
-              run: |
-                  echo "🏗️ Préparation du build production..."
-                  composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader --no-scripts
-                  echo "✅ Build production prêt"
+              run: composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader --no-scripts
 
             - name: Create release archive
               run: |
@@ -43,8 +37,7 @@ jobs:
                     --exclude='./.git' \
                     --exclude='./.github' \
                     --exclude='./tests' \
-                    --exclude='./var/cache/*' \
-                    --exclude='./var/log/*' \
+                    --exclude='./var' \
                     --exclude='./.env.test*' \
                     --exclude='./phpunit.xml*' \
                     --exclude='./node_modules' \
@@ -79,69 +72,70 @@ jobs:
                   passphrase: ${{ secrets.SSH_PASSPHRASE }}
                   script: |
                       set -euo pipefail
+
+                      # --- Configuration ---
                       PHP_CMD="/opt/php8.2/bin/php"
                       COMPOSER_CMD="/opt/php8.2/bin/composer"
                       WEB_DIR="sites/apimemoire"
 
                       echo "🚀 Début du déploiement Infomaniak..."
 
-                      # Créer une sauvegarde de l'existant
+                      # 1. Sauvegarde de sécurité du site complet
                       if [ -d "$WEB_DIR" ] && [ "$(ls -A $WEB_DIR 2>/dev/null)" ]; then
                           echo "💾 Sauvegarde de l'existant..."
-                          BACKUP_NAME="backup_$(date +%Ym%d_%H%M%S).tar.gz"
+                          BACKUP_NAME="backup_$(date +%Y%m%d_%H%M%S).tar.gz"
                           tar -czf "$BACKUP_NAME" -C "$WEB_DIR" . --exclude="var/cache/*" --exclude="var/log/*" || true
                           echo "✅ Sauvegarde créée: $BACKUP_NAME"
                       fi
 
-                      # S'assurer que le répertoire web existe
                       mkdir -p "$WEB_DIR"
 
-                      # Sauvegarder les fichiers et dossiers persistants
+                      # 2. Sauvegarde des données persistantes
+                      echo "💾 Sauvegarde des données persistantes..."
                       if [ -f "$WEB_DIR/.env.local" ]; then cp "$WEB_DIR/.env.local" "/tmp/env_backup" || true; fi
                       if [ -d "$WEB_DIR/var" ]; then cp -r "$WEB_DIR/var" "/tmp/var_backup" || true; fi
                       if [ -d "$WEB_DIR/public/uploads" ]; then cp -r "$WEB_DIR/public/uploads" "/tmp/uploads_backup" || true; fi
-                      # --- LIGNE AJOUTÉE POUR LA SAUVEGARDE DES CLÉS JWT ---
                       if [ -d "$WEB_DIR/config/jwt" ]; then cp -r "$WEB_DIR/config/jwt" "/tmp/jwt_backup" || true; fi
 
-                      # Nettoyer le répertoire web
+                      # 3. Nettoyage du répertoire
                       echo "🧹 Nettoyage du répertoire web..."
                       cd "$WEB_DIR"
-                      find . -mindepth 1 -maxdepth 1 ! -name 'var' ! -name '.env.local' ! -name 'public' -exec rm -rf {} + 2>/dev/null || true
-                      if [ -d "public" ]; then
-                          find public -mindepth 1 -maxdepth 1 ! -name 'uploads' -exec rm -rf {} + 2>/dev/null || true
-                      fi
+                      find . -mindepth 1 -maxdepth 1 ! -name 'var' ! -name 'public' ! -name 'config' -exec rm -rf {} + 2>/dev/null || true
+                      if [ -d "public" ]; then find public -mindepth 1 -maxdepth 1 ! -name 'uploads' -exec rm -rf {} + 2>/dev/null || true; fi
+                      if [ -d "config" ]; then find config -mindepth 1 -maxdepth 1 ! -name 'jwt' -exec rm -rf {} + 2>/dev/null || true; fi
 
-                      # Extraire la nouvelle version
+                      # 4. Déploiement du nouveau code
                       echo "📦 Extraction de la nouvelle version..."
                       tar -xzf "$HOME/release.tar.gz"
 
-                      # Restaurer les fichiers de config et données
-                      if [ -f "/tmp/env_backup" ]; then cp "/tmp/env_backup" ".env.local"; echo "✅ .env.local restauré"; fi
+                      # 5. Restauration des données persistantes
+                      echo "🔄 Restauration des données persistantes..."
+                      if [ -f "/tmp/env_backup" ]; then cp "/tmp/env_backup" ".env.local"; fi
                       if [ -d "/tmp/var_backup" ]; then cp -r /tmp/var_backup/* var/ 2>/dev/null || true; fi
                       if [ -d "/tmp/uploads_backup" ]; then cp -r /tmp/uploads_backup/* public/uploads/ 2>/dev/null || true; fi
-                      # --- LIGNE AJOUTÉE POUR LA RESTAURATION DES CLÉS JWT ---
                       if [ -d "/tmp/jwt_backup" ]; then mkdir -p config/jwt && cp -r /tmp/jwt_backup/* config/jwt/ 2>/dev/null || true; fi
 
-                      # Installation des dépendances et assets
-                      echo "📦 Installation des dépendances avec PHP 8.2..."
+                      # 6. Installation et configuration
+                      echo "📦 Installation des dépendances..."
                       $COMPOSER_CMD install --no-dev --prefer-dist --no-interaction --optimize-autoloader --no-scripts
-                      echo "🖼️ Installation des assets des bundles..."
+
+                      echo "🖼️ Installation des assets..."
                       $PHP_CMD bin/console assets:install --env=prod
 
-                      # Configuration Symfony
                       if [ -f bin/console ]; then
-                          echo "⚙️ Configuration Symfony en forçant l'environnement PROD..."
+                          echo "⚙️ Configuration Symfony..."
                           $PHP_CMD bin/console cache:clear --env=prod
                           $PHP_CMD bin/console doctrine:migrations:migrate --env=prod --no-interaction --allow-no-migration || echo "⚠️ Migrations non appliquées"
                           $PHP_CMD bin/console cache:warmup --env=prod || true
                           $PHP_CMD bin/console api:openapi:export --yaml --env=prod > public/api-docs.yaml 2>/dev/null || echo "📚 Documentation API non générée"
                       fi
 
-                      # ... (Reste du script : permissions et nettoyage)
+                      # 7. Finalisation
                       echo "🔐 Configuration des permissions..."
                       chmod -R 755 .
                       chmod -R 777 var 2>/dev/null || chmod -R 755 var
-                      chmod -R 755 public/uploads 2>/dev/null || true
+
+                      echo "🧹 Nettoyage final..."
                       rm -f "$HOME/release.tar.gz"
                       rm -rf /tmp/env_backup /tmp/var_backup /tmp/uploads_backup /tmp/jwt_backup 2>/dev/null || true
 
