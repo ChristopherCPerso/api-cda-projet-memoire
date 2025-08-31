@@ -3,19 +3,19 @@ on:
     push:
         branches: ["main"]
 jobs:
-    build-test-deploy:
+    build-deploy:
         runs-on: ubuntu-latest
 
-        # Ajout des services MySQL pour les tests
-        services:
-            mysql:
-                image: mysql:8.0
-                env:
-                    MYSQL_ROOT_PASSWORD: root
-                    MYSQL_DATABASE: symfony_test
-                ports:
-                    - 3306:3306
-                options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+        # Plus besoin des services MySQL pour l'instant
+        # services:
+        #   mysql:
+        #     image: mysql:8.0
+        #     env:
+        #       MYSQL_ROOT_PASSWORD: root
+        #       MYSQL_DATABASE: symfony_test
+        #     ports:
+        #       - 3306:3306
+        #     options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
         steps:
             - name: Checkout
@@ -33,41 +33,26 @@ jobs:
               uses: shivammathur/setup-php@v2
               with:
                   php-version: "8.2"
-                  extensions: mbstring, intl, pdo_mysql, pdo_sqlite, opcache
+                  extensions: mbstring, intl, pdo_mysql, opcache
                   coverage: none
 
-            # Installation avec variable d'environnement pour éviter les scripts Symfony
-            - name: Install deps (dev) WITHOUT auto-scripts
+            # Installation simple sans DB et sans tests
+            - name: Install dependencies
               run: |
+                  echo "📦 Installation des dépendances..."
                   composer install --no-interaction --prefer-dist --no-scripts
+                  echo "✅ Dépendances installées"
 
-            # Puis on lance les scripts manuellement avec la bonne config
-            - name: Setup database for tests
+            - name: Prepare production build
               run: |
-                  echo "DATABASE_URL=mysql://root:root@127.0.0.1:3306/symfony_test" > .env.test.local
-                  php bin/console doctrine:database:create --env=test --if-not-exists
-                  php bin/console doctrine:schema:create --env=test
-                  # Fixtures si tu en as
-                  php bin/console doctrine:fixtures:load --env=test --no-interaction --quiet || echo "No fixtures"
-
-            - name: Run tests
-              run: |
-                  if [ -f vendor/bin/phpunit ]; then 
-                    vendor/bin/phpunit --testdox
-                  else 
-                    echo "No tests configured"
-                  fi
-
-            # Maintenant on prépare pour la production (sans DB)
-            - name: Prepare production vendor (no DB connection)
-              run: |
-                  # Supprimer la config de test
-                  rm -f .env.test.local
-                  # Installer en prod sans scripts automatiques
+                  echo "🏗️ Préparation du build production..."
+                  # Installation en mode production
                   composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader --no-scripts
+                  echo "✅ Build production prêt"
 
             - name: Create release archive
               run: |
+                  echo "📦 Création de l'archive de déploiement..."
                   tar -czf release.tar.gz \
                     --exclude='.git' \
                     --exclude='.github' \
@@ -75,7 +60,10 @@ jobs:
                     --exclude='var/cache/*' \
                     --exclude='var/log/*' \
                     --exclude='.env.test*' \
+                    --exclude='phpunit.xml*' \
+                    --exclude='node_modules' \
                     .
+                  echo "✅ Archive créée: release.tar.gz"
 
             - name: Add host key
               run: |
