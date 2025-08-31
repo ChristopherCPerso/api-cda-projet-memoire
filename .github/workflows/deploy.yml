@@ -35,11 +35,12 @@ jobs:
                   composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader --no-scripts
                   echo "✅ Build production prêt"
 
+            # --- MODIFICATION 1 ---
             - name: Create release archive
               run: |
                   echo "📦 Création de l'archive de déploiement..."
-                  # Crée l'archive dans le répertoire parent pour éviter tout conflit
-                  tar -czf ../release.tar.gz \
+                  # Crée l'archive dans un chemin absolu (/tmp) pour éviter les problèmes de chemins relatifs
+                  tar -czf /tmp/release.tar.gz \
                     --exclude='.git' \
                     --exclude='.github' \
                     --exclude='tests' \
@@ -49,13 +50,14 @@ jobs:
                     --exclude='phpunit.xml*' \
                     --exclude='node_modules' \
                     .
-                  echo "✅ Archive créée: ../release.tar.gz"
+                  echo "✅ Archive créée: /tmp/release.tar.gz"
 
             - name: Add host key
               run: |
                   mkdir -p ~/.ssh
                   ssh-keyscan -p "${{ secrets.SSH_PORT }}" "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
 
+            # --- MODIFICATION 2 ---
             - name: Upload archive to server
               uses: appleboy/scp-action@v0.1.7
               with:
@@ -63,8 +65,8 @@ jobs:
                   username: ${{ secrets.SSH_USER }}
                   key: ${{ secrets.SSH_KEY }}
                   port: ${{ secrets.SSH_PORT }}
-                  # Le chemin source est mis à jour pour pointer vers l'archive dans le répertoire parent
-                  source: "../release.tar.gz"
+                  # Le chemin source est mis à jour pour pointer vers le chemin absolu de l'archive
+                  source: "/tmp/release.tar.gz"
                   target: "~/deploy"
 
             - name: Deploy on server (extract, link, composer, migrate)
