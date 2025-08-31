@@ -6,25 +6,12 @@ jobs:
     build-deploy:
         runs-on: ubuntu-latest
 
-        # Plus besoin des services MySQL pour l'instant
-        # services:
-        #   mysql:
-        #     image: mysql:8.0
-        #     env:
-        #       MYSQL_ROOT_PASSWORD: root
-        #       MYSQL_DATABASE: symfony_test
-        #     ports:
-        #       - 3306:3306
-        #     options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
-
         steps:
             - name: Checkout
               uses: actions/checkout@v4
 
-            # Configuration d'environnement pour éviter la connexion DB
             - name: Setup environment
               run: |
-                  # Créer un .env.test temporaire pour éviter la connexion DB
                   echo "APP_ENV=test" > .env.test.local
                   echo "DATABASE_URL=sqlite:///:memory:" >> .env.test.local
                   echo "APP_SECRET=test" >> .env.test.local
@@ -36,7 +23,6 @@ jobs:
                   extensions: mbstring, intl, pdo_mysql, opcache
                   coverage: none
 
-            # Installation simple sans DB et sans tests
             - name: Install dependencies
               run: |
                   echo "📦 Installation des dépendances..."
@@ -46,14 +32,14 @@ jobs:
             - name: Prepare production build
               run: |
                   echo "🏗️ Préparation du build production..."
-                  # Installation en mode production
                   composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader --no-scripts
                   echo "✅ Build production prêt"
 
             - name: Create release archive
               run: |
                   echo "📦 Création de l'archive de déploiement..."
-                  tar -czf release.tar.gz \
+                  # Crée l'archive dans le répertoire parent pour éviter tout conflit
+                  tar -czf ../release.tar.gz \
                     --exclude='.git' \
                     --exclude='.github' \
                     --exclude='tests' \
@@ -62,9 +48,8 @@ jobs:
                     --exclude='.env.test*' \
                     --exclude='phpunit.xml*' \
                     --exclude='node_modules' \
-                    --exclude='release.tar.gz' \
                     .
-                  echo "✅ Archive créée: release.tar.gz"
+                  echo "✅ Archive créée: ../release.tar.gz"
 
             - name: Add host key
               run: |
@@ -78,7 +63,8 @@ jobs:
                   username: ${{ secrets.SSH_USER }}
                   key: ${{ secrets.SSH_KEY }}
                   port: ${{ secrets.SSH_PORT }}
-                  source: "release.tar.gz"
+                  # Le chemin source est mis à jour pour pointer vers l'archive dans le répertoire parent
+                  source: "../release.tar.gz"
                   target: "~/deploy"
 
             - name: Deploy on server (extract, link, composer, migrate)
