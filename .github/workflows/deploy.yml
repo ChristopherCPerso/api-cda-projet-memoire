@@ -62,6 +62,7 @@ jobs:
                     --exclude='.env.test*' \
                     --exclude='phpunit.xml*' \
                     --exclude='node_modules' \
+                    --exclude='release.tar.gz' \
                     .
                   echo "✅ Archive créée: release.tar.gz"
 
