@@ -1,104 +1,177 @@
-# 🚀 Installation du projet Symfony
+# 🚀 API AtecNAdvisor
 
-Bienvenue dans ce projet Symfony !  
-Voici les étapes simples et efficaces pour installer l'application en local avec Docker + Composer.
-
----
-
-## ✅ Prérequis
-
--   PHP >= 8.1 installé localement
--   Composer
--   Docker & Docker Compose
--   Symfony CLI (optionnel mais recommandé)
+Bienvenue dans l'API AtecNAdvisor, construite avec Symfony. Ce document vous guidera à travers l'installation, le développement, le déploiement et la mise en production du projet.
 
 ---
 
-## ⚙️ Installation pas à pas
+## 🛠️ Prérequis
 
-### 1. Cloner le projet
+Pour lancer ce projet en local, assurez-vous d'avoir les éléments suivants installés :
 
-```bash
-git clone <url-du-repo>
-cd <nom-du-projet>
-```
+-   **PHP >= 8.1**
+-   **Composer**
+-   **Docker & Docker Compose**
+-   **Symfony CLI** (optionnel mais recommandé)
 
-Git clone
+---
 
-Composer install
+## 🚀 Installation pas à pas
 
-Création du docker compose
-lancer un docker compose up
+Suivez ces étapes pour configurer et lancer le projet sur votre machine locale.
 
-Modifier le .env pour connecter la BDD
-
-pour creer les tables dans la BDD
-doctrine:database:create
-Lancer console doctrine:migrations:migrate
-
-Ajouter des jeux de données (uniquement en développement)
+### 1. Cloner le dépôt
 
 ```bash
-# Les fixtures ne s'exécutent qu'en environnement dev
-symfony console doctrine:fixtures:load --env=dev
+git clone https://github.com/ChristopherCPerso/api-cda-projet-memoire
+cd api-atecnadvisor # Ou le nom de votre dossier de projet
 ```
 
-Lancer symfony avec symfony server start
+### 2. Installation des dépendances
 
-```
-symfony server:start
-```
-
-##Creation des cles pour JWT
-
-Lancer la commnde pour creer le token privée
+Le projet utilise Composer pour la gestion des dépendances PHP et Docker pour l'environnement de développement.
 
 ```bash
-openssl genpkey \ -algorithm RSA \ -out config/jwt/private.pem \ -aes-256-cbc \ -pkeyopt rsa_keygen_bits:4096
+composer install
 ```
 
-Lancer la commnde pour creer le token public
+### 3. Fichier d'environnement (.env)
+
+Pour des raisons de sécurité, le fichier `.env` contenant les configurations sensibles (comme les identifiants de base de données et les clés JWT) n'est pas inclus dans le dépôt.
+
+**Veuillez récupérer le fichier `.env` auprès du lead développeur.**
+
+Une fois en votre possession, placez-le à la racine du projet.
+
+### 4. Lancement de l'environnement Docker
+
+Lancez les services Docker définis dans `docker-compose.yml` :
+
+```bash
+docker-compose up -d
+```
+
+Cela démarrera les conteneurs nécessaires (base de données, etc.).
+
+### 5. Configuration de la base de données
+
+Après le démarrage des conteneurs, configurez votre base de données :
+
+```bash
+# Crée la base de données (si elle n'existe pas)
+php bin/console doctrine:database:create
+
+# Applique les migrations pour créer les tables
+php bin/console doctrine:migrations:migrate
+```
+
+### 6. Chargement des données de test (environnement de développement)
+
+Si vous êtes en environnement de développement, vous pouvez charger des données de test via les fixtures :
+
+```bash
+# Les fixtures s'exécutent uniquement en environnement dev
+php bin/console doctrine:fixtures:load --env=dev
+```
+
+### 7. Création des clés JWT
+
+Pour l'authentification via JWT, vous devez générer une clé privée et une clé publique.
+
+#### Clé privée :
+
+```bash
+openssl genpkey \
+    -algorithm RSA \
+    -out config/jwt/private.pem \
+    -aes-256-cbc \
+    -pkeyopt rsa_keygen_bits:4096
+```
+
+**Attention :** Vous serez invité à entrer une phrase secrète (passphrase). Choisissez-en une robuste et **notez-la**. Vous devrez l'ajouter dans votre fichier `.env.local` (variable `JWT_PASSPHRASE`).
+
+#### Clé publique :
 
 ```bash
 openssl pkey -in config/jwt/private.pem -out config/jwt/public.pem -pubout
 ```
 
-🚨 Veillez à mettre des passphrase robuste
-⚠️ Il vous faudra indiquer votre passe phrase dans le fichier .env.local
+### 8. Lancement du serveur Symfony
+
+Lancez le serveur web local de Symfony :
+
+```bash
+symfony server:start
+```
+
+Votre API devrait maintenant être accessible localement.
 
 ---
 
-## Tests
+## 💻 Développement Frontend (TypeScript)
+
+Ce projet backend est conçu pour interagir avec une application frontend qui utilise **TypeScript**. Voici quelques points à garder à l'esprit :
+
+-   **Types statiques :** TypeScript apporte une robustesse au code en détectant les erreurs avant l'exécution. Assurez-vous que vos modèles de données frontend correspondent aux schémas de l'API.
+-   **Intégration de l'API :** Utilisez des outils comme `axios` ou `fetch` pour interagir avec l'API.
+-   **Génération de types :** Envisagez d'utiliser des outils pour générer automatiquement les types TypeScript à partir de la documentation OpenAPI (souvent disponible via API Platform). Cela garantit la cohérence entre le frontend et le backend.
 
 ---
 
-## 🌍 Configuration des environnements
+## 🤝 Workflow de développement et déploiement sur le dépôt
 
-### Développement (dev)
+Pour maintenir un code propre et une collaboration efficace, suivez ces bonnes pratiques :
 
--   Les fixtures sont automatiquement disponibles
--   Base de données locale avec données de test
--   Mode debug activé
+### 1. Une tâche, une branche
 
-### Production (prod)
+Chaque nouvelle fonctionnalité, amélioration ou correction de bug doit être développée sur une branche Git dédiée. Nommez vos branches de manière descriptive, par exemple :
 
--   Les fixtures ne sont PAS installées
--   Base de données de production sans données de test
--   Mode debug désactivé
--   Pour passer en production, utilisez :
+-   `feat/nom-de-la-fonctionnalite`
+-   `enhance/amelioration-existante`
+-   `fix/correction-de-bug`
+-   `chore/tache-technique`
+
+### 2. Vérification avant le push
+
+Avant de pousser vos modifications sur le dépôt distant, assurez-vous de :
+
+-   Vérifier qu'il ne reste pas de dump, ni de code mort.
+-   Exécuter les tests unitaires et fonctionnels (`php bin/phpunit`).
+
+### 3. Création d'une Pull Request (PR) / Merge Request (MR)
+
+Une fois votre branche prête, créez une Pull Request (sur GitHub/GitLab/Bitbucket) avec les informations suivantes :
+
+-   **Type d'action :** `feat`, `enhance`, `fix`, `chore`, etc.
+-   **Numéro de ticket :** Référence à la tâche dans votre outil de gestion de projet (ex: `#123`).
+-   **Description :** Expliquez clairement ce que fait votre modification, pourquoi elle a été faite, et comment la tester si nécessaire.
+
+---
+
+## 🚀 Mise en production
+
+Le processus de mise en production est déclenché par le merge sur la branche `main`.
+
+### 1. Merge sur la branche `main`
+
+Une fois qu'une Pull Request est approuvée et que les tests passent, elle peut être fusionnée dans la branche `main`. **Seules les branches stables et validées doivent être fusionnées sur `main`.**
+
+### 2. Déploiement automatique
+
+Le merge sur la branche `main` devrait déclencher automatiquement le pipeline de CI/CD (intégration continue / déploiement continu) qui :
+
+-   Construira l'application.
+-   Déploiera l'application sur l'environnement de production.
+
+### 3. Environnement de production
+
+L'environnement de production est optimisé pour la performance et la sécurité :
+
+-   Les fixtures ne sont PAS installées.
+-   Base de données de production sans données de test.
+-   Mode debug désactivé.
+
+Pour installer les dépendances en mode production, utilisez :
 
 ```bash
 APP_ENV=prod composer install --no-dev
 ```
-
----
-
-## 📊 Données de test incluses
-
-Les fixtures créent automatiquement :
-
--   **Catégories de restaurants** : Fast-food, Italien, Japonais, etc.
--   **Catégories de paiement** : Carte Bancaire, Espèce, Tickets Restaurant, Apple Pay, Google Pay, Uber Eats, Deliveroo
--   **Utilisateurs** : 1 administrateur + 4 utilisateurs de test
--   **Restaurants** : 30 restaurants avec images, horaires et catégories
--   **Avis** : 1 à 5 avis par restaurant
