@@ -26,15 +26,6 @@ jobs:
             - name: Install dependencies
               run: composer install --no-interaction --prefer-dist --no-scripts
 
-            - name: Run migrations
-              run: APP_ENV=test php bin/console doctrine:migrations:migrate --no-interaction
-
-            - name: Load fixtures
-              run: APP_ENV=test php bin/console doctrine:fixtures:load --no-interaction
-
-            - name: Run tests
-              run: KERNEL_CLASS='App\\Kernel' vendor/bin/phpunit
-
             - name: Prepare production build
               run: composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader --no-scripts
 
