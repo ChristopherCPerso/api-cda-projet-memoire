@@ -11,15 +11,19 @@ class LoginTest extends WebTestCase
     {
         $client = static::createClient();
 
-        $user = static::getContainer()->get(UserRepository::class)->findOneBy(['email' => 'bdecajou1@gmail.com']);
+        $user = static::getContainer()->get(UserRepository::class)->findOneBy(['email' => 'cchiarandini@proton.me']);
 
-        $client->request('POST', '/api/login_check', 
-        [], 
-        [], 
-        ['CONTENT_TYPE' => 'application/json'], json_encode([
-            'username' => $user->getEmail(),
-            'password' => 'jeSu1sleP4ssW0rdsUp3RrBu5te'
-        ]));
+        $client->request(
+            'POST',
+            '/api/login_check',
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode([
+                'username' => $user->getEmail(),
+                'password' => 'jeSu1sleP4ssW0rdsUp3RrBu5te'
+            ])
+        );
 
         $this->assertResponseStatusCodeSame(200);
 
@@ -33,10 +37,9 @@ class LoginTest extends WebTestCase
         //retour visuel
         $statusCode = $client->getResponse()->getStatusCode();
         $statusContent = $client->getResponse()->getContent();
-        
+
         echo "\n***Résultat obtenu pour la connexion***\n";
         echo "Code HTTP: $statusCode\n";
         echo "Response: $statusContent\n";
-    
     }
 }
