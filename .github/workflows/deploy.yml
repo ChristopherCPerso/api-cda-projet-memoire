@@ -26,6 +26,9 @@ jobs:
             - name: Install dependencies
               run: composer install --no-interaction --prefer-dist --no-scripts
 
+            - name: Run tests
+              run: vendor/bin/phpunit
+
             - name: Prepare production build
               run: composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader --no-scripts
 
