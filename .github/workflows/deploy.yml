@@ -14,19 +14,21 @@ jobs:
               run: |
                   mkdir -p var config/jwt
 
-                  # Création du fichier env
-                  echo "APP_ENV=test" > .env.test.local
-                  echo "DATABASE_URL=sqlite:///%kernel.project_dir%/var/test.db" >> .env.test.local
-                  echo "APP_SECRET=test" >> .env.test.local
-
                   # Génération des clés PEM dans config/jwt
                   openssl genpkey -algorithm RSA -out config/jwt/private.pem -pkeyopt rsa_keygen_bits:4096
                   openssl rsa -pubout -in config/jwt/private.pem -out config/jwt/public.pem
 
+                  # Création du fichier env
+                  cat > .env.test.local <<'TXT'
+                  APP_ENV=test 
+                  DATABASE_URL=sqlite:///%kernel.project_dir%/var/test.db
+                  APP_SECRET=test
+
                   # Ajout des variables JWT dans le .env
-                  echo "JWT_SECRET_KEY=%kernel.project_dir%/config/jwt/private.pem" >> .env.test.local
-                  echo "JWT_PUBLIC_KEY=%kernel.project_dir%/config/jwt/public.pem" >> .env.test.local
-                  echo "JWT_PASSPHRASE=deathfab85" >> .env.test.local
+                  JWT_SECRET_KEY=%kernel.project_dir%/config/jwt/private.pem
+                  JWT_PUBLIC_KEY=%kernel.project_dir%/config/jwt/public.pem
+                  JWT_PASSPHRASE=deathfab85
+                  TXT
 
             - name: Setup PHP
               uses: shivammathur/setup-php@v2
