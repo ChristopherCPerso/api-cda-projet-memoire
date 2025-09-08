@@ -26,6 +26,11 @@ jobs:
             - name: Install dependencies
               run: composer install --no-interaction --prefer-dist --no-scripts
 
+            - name: Prepare database for tests
+              run: |
+                  php bin/console doctrine:database:create --env=test || true
+                  php bin/console doctrine:schema:create --env=test
+
             - name: Run tests
               run: |
                   echo "🧪 Lancement des tests..."
