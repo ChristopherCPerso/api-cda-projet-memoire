@@ -53,7 +53,7 @@ class AppFixtures extends Fixture implements DependentFixtureInterface
 
         // 2) Récupération des catégories créées par CategorieFixtures
         $categories = $manager->getRepository(Categories::class)->findAll();
-        
+
         // 3) Récupération des catégories de paiement créées par PaymentCategoryFixtures
         $paymentCategories = $manager->getRepository(PaymentCategory::class)->findAll();
 
@@ -78,7 +78,7 @@ class AppFixtures extends Fixture implements DependentFixtureInterface
                     $restaurant->addCategory($category);
                 }
             }
-            
+
             // 2 à 5 catégories de paiement
             if (!empty($paymentCategories)) {
                 $randomPaymentCategories = $faker->randomElements($paymentCategories, $faker->numberBetween(2, 5));
@@ -102,6 +102,7 @@ class AppFixtures extends Fixture implements DependentFixtureInterface
             foreach ($days as $day) {
                 if ($day === $closedDay) {
                     $scheduleClosed = new RestaurantSchedule();
+                    $scheduleClosed->setServiceName('Ferme');
                     $scheduleClosed->setDaysOfWeek($day);
                     $scheduleClosed->setOpenTime(\DateTime::createFromFormat('H:i', '00:00'));
                     $scheduleClosed->setCloseTime(\DateTime::createFromFormat('H:i', '00:00'));
@@ -110,6 +111,7 @@ class AppFixtures extends Fixture implements DependentFixtureInterface
                 } else {
                     $scheduleLunch = new RestaurantSchedule();
                     $scheduleLunch->setDaysOfWeek($day);
+                    $scheduleLunch->setServiceName('Déjeuner');
                     $scheduleLunch->setOpenTime(\DateTime::createFromFormat('H:i', '11:30'));
                     $scheduleLunch->setCloseTime(\DateTime::createFromFormat('H:i', '14:00'));
                     $scheduleLunch->setIsClosed(false);
@@ -117,6 +119,7 @@ class AppFixtures extends Fixture implements DependentFixtureInterface
 
                     $scheduleDinner = new RestaurantSchedule();
                     $scheduleDinner->setDaysOfWeek($day);
+                    $scheduleDinner->setServiceName('Diner');
                     $scheduleDinner->setOpenTime(\DateTime::createFromFormat('H:i', '19:00'));
                     $scheduleDinner->setCloseTime(\DateTime::createFromFormat('H:i', '00:00'));
                     $scheduleDinner->setIsClosed(false);
