@@ -21,7 +21,7 @@ class LoginTest extends WebTestCase
             ['CONTENT_TYPE' => 'application/json'],
             json_encode([
                 'username' => $user->getEmail(),
-                'password' => 'jeSu1sleP4ssW0rdsUp3RrBu5te'
+                'password' => 'Deathfab85'
             ])
         );
 
