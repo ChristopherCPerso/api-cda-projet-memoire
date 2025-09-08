@@ -16,12 +16,6 @@ jobs:
                   echo "DATABASE_URL=sqlite:///:memory:" >> .env.test.local
                   echo "APP_SECRET=test" >> .env.test.local
 
-            - name: Run migrations
-              run: php bin/console doctrine:migrations:migrate --no-interaction
-
-            - name: Load fixtures
-              run: php bin/console doctrine:fixtures:load --no-interaction
-
             - name: Setup PHP
               uses: shivammathur/setup-php@v2
               with:
@@ -32,8 +26,14 @@ jobs:
             - name: Install dependencies
               run: composer install --no-interaction --prefer-dist --no-scripts
 
+            - name: Run migrations
+              run: php bin/console doctrine:migrations:migrate --no-interaction
+
+            - name: Load fixtures
+              run: php bin/console doctrine:fixtures:load --no-interaction
+
             - name: Run tests
-              run: KERNEL_CLASS='App\Kernel' vendor/bin/phpunit
+              run: KERNEL_CLASS='App\\Kernel' vendor/bin/phpunit
 
             - name: Prepare production build
               run: composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader --no-scripts
