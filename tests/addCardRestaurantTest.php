@@ -12,11 +12,11 @@ class AddCardRestaurantTest extends WebTestCase
         $client = static::createClient();
 
         // Récupération du TOKEN
-        $user = static::getContainer()->get(UserRepository::class)->findOneBy(['email' => 'bdecajou1@gmail.com']);
+        $user = static::getContainer()->get(UserRepository::class)->findOneBy(['email' => 'cchiarandini@proton.me']);
 
         $client->request('POST', '/api/login_check', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
             'username' => $user->getEmail(),
-            'password' => 'jeSu1sleP4ssW0rdsUp3RrBu5te'
+            'password' => 'Deathfab85'
         ]));
 
         $this->assertResponseStatusCodeSame(200);
@@ -26,18 +26,18 @@ class AddCardRestaurantTest extends WebTestCase
 
         // Ajout d'une carte de restaurant
         $payload = [
-            'name'=> 'Le bon Test',
-            'address'=> '42 clos du cossignol',
-            'postalCode'=> 31520,
-            'city'=> 'Ramonville-Saint-Agne',
-            'description'=> 'Un restaurant de test fort sympathique',
-            'phone'=> '0505050505',
-            'categories'=> [['name' => 'Bistrot']],
-            'paymentCategories'=> [['type' => 'Deliveroo']],
-            'openingHours'=> [
+            'name' => 'Le bon Test',
+            'address' => '42 clos du cossignol',
+            'postalCode' => 31520,
+            'city' => 'Ramonville-Saint-Agne',
+            'description' => 'Un restaurant de test fort sympathique',
+            'phone' => '0505050505',
+            'categories' => [['name' => 'Bistrot']],
+            'paymentCategories' => [['type' => 'Deliveroo']],
+            'openingHours' => [
                 ['daysOfWeek' => 'Lundi', 'serviceName' => 'LUNCH', 'isClosed' => false, 'openTime' => '1970-01-01T12:00:00.000Z', 'closeTime' => '1970-01-01T14:00:00.000Z']
             ],
-            'restaurantImages'=> []
+            'restaurantImages' => []
         ];
 
         $client->request('POST', '/api/restaurants', [], [], [
