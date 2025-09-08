@@ -13,7 +13,7 @@ jobs:
             - name: Setup environment for build
               run: |
                   echo "APP_ENV=test" > .env.test.local
-                  echo "DATABASE_URL=sqlite:///:memory:" >> .env.test.local
+                  echo "DATABASE_URL=sqlite:///%kernel.project_dir%/var/test.db" > .env.test.local
                   echo "APP_SECRET=test" >> .env.test.local
 
             - name: Setup PHP
@@ -28,7 +28,9 @@ jobs:
 
             - name: Prepare database for tests
               run: |
+                  mkdir -p var
                   php bin/console doctrine:schema:create --env=test
+                  php bin/console doctrine:fixtures:load --env=test --no-interaction
 
             - name: Run tests
               run: |
